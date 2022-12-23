@@ -9,6 +9,7 @@ pub enum InterfaceShape {
 }
 
 impl InterfaceShape {
+    /// Convert number of vertices to cell shape
     pub fn from_number_of_vertices(n_vertices: u8) -> InterfaceShape {
         match n_vertices {
             0 | 1 => panic!("Not enough vertices to form an interface: {n_vertices}"),
@@ -25,35 +26,54 @@ pub enum Direction {
 }
 
 /// A geometric interface
-pub struct Interface<'a> {
-    vertices: Vec<&'a Vertex>,
+pub struct Interface {
+    vertex_ids: Vec<usize>,
     area: Number,
     n: Vector3,
     t1: Vector3,
     t2: Vector3,
     centre: Vector3,
     shape: InterfaceShape,
+    id: usize,
 }
 
-impl <'a> Interface<'a> {
+impl Interface {
     /// Create an interface from a vector of vertices
-    pub fn new_from_vertices(vertices: Vec<&'a Vertex>) -> Interface<'a> {
+    /// 
+    /// # Parameters
+    /// `vertices`: All the vertices existing in the grid
+    ///
+    /// `vertex_ids`: The id's of the vertices in this particular interface
+    ///
+    /// `id`: The id of the interface
+    pub fn new_from_vertices(vertices: &[Vertex], vertex_ids: Vec<usize>, id: usize) -> Interface {
         let t1: Vector3;
         let t2: Vector3;
         let n: Vector3;
         let area: Number;
-        let shape = InterfaceShape::from_number_of_vertices(vertices.len() as u8);
+
+        // construct temporary vector of vertex references
+        let mut vs: Vec<&Vertex> = Vec::with_capacity(vertex_ids.len());
+        for vertex in vertex_ids.iter() {
+            vs.push(&vertices[*vertex]);
+        }
+
+        // shape specific setup
+        let shape = InterfaceShape::from_number_of_vertices(vertex_ids.len() as u8);
         match shape {
             InterfaceShape::Line => {
-                let v0v1 = vertices[0].vector_to(vertices[1]);
+                let v0v1 = vs[0].vector_to(vs[1]);
                 t1 = v0v1.normalised();
                 t2 = Vector3{x: 0.0, y: 0.0, z: 1.0};
                 n = t1.cross(&t2).normalised();
                 area = v0v1.length(); // per unit depth
             }
         }
-        let centre = compute_centre_of_vertices(&vertices);
-        Interface{vertices, area, n, t1, t2, shape, centre}
+
+        // compute geometric centre of the cell
+        let centre = compute_centre_of_vertices(&vs);
+
+        Interface{vertex_ids, area, n, t1, t2, shape, centre, id}
     }
 
     /// Access the area of the interface
@@ -77,8 +97,8 @@ impl <'a> Interface<'a> {
     }
 
     /// Access the vertices of the interface
-    pub fn vertices(&self) -> &Vec<&'a Vertex> {
-        &self.vertices 
+    pub fn vertex_ids(&self) -> &Vec<usize> {
+        &self.vertex_ids 
     }
     
     /// Access the shape of the interface
@@ -91,6 +111,10 @@ impl <'a> Interface<'a> {
         match &self.shape {
             InterfaceShape::Line => 2,
         }
+    }
+
+    pub fn id(&self) -> usize {
+        self.id
     }
 
     /// Compute if an interface is pointing towards or away from
@@ -114,11 +138,11 @@ impl <'a> Interface<'a> {
         }
     }
 
-    fn equal(&self, other: &Vec<&Vertex>) -> bool {
+    fn equal(&self, other: &[&Vertex]) -> bool {
         for other_vertex in other.iter() {
             let mut has_vertex = false;
-            for this_vertex in self.vertices.iter() {
-                if this_vertex == other_vertex {
+            for this_vertex_id in self.vertex_ids.iter() {
+                if *this_vertex_id == other_vertex.id() {
                     has_vertex = true;
                     break;
                 }
@@ -129,13 +153,9 @@ impl <'a> Interface<'a> {
     }
 }
 
-impl PartialEq<Vec<&Vertex>> for Interface<'_> {
+impl PartialEq<Vec<&Vertex>> for Interface {
     fn eq(&self, other: &Vec<&Vertex>) -> bool {
         self.equal(other)
-    }
-
-    fn ne(&self, other: &Vec<&Vertex>) -> bool {
-        !self.equal(other)
     }
 }
 
