@@ -4,6 +4,8 @@ use crate::numerical_methods::number::Number;
 /// Geometric vertex
 pub struct Vertex {
     pos: Vector3,
+
+    id: usize,
 }
 
 impl Vertex {
@@ -20,5 +22,19 @@ impl Vertex {
     /// Access the position of the vertex
     pub fn pos(&self) -> &Vector3 {
         &self.pos
+    }
+
+    pub fn id(&self) -> usize {
+        self.id
+    }
+}
+
+impl PartialEq for Vertex {
+    fn eq(&self, other: &Vertex) -> bool {
+        self.id == other.id
+    }
+
+    fn ne(&self, other: &Vertex) -> bool {
+        self.id != other.id
     }
 }

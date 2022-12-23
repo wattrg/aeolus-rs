@@ -1,10 +1,10 @@
 use crate::numerical_methods::number::Number;
-use crate::geometry::interface::Interface;
-use crate::geometry::vertex::Vertex;
 use crate::util::vector3::Vector3;
 
-use super::geom_calc::{compute_centre_of_vertices, quad_area, triangle_area};
+use super::interface::Interface;
+use super::vertex::Vertex;
 use super::interface::Direction;
+use super::geom_calc::{compute_centre_of_vertices, quad_area, triangle_area};
 
 /// The shape of the cell
 pub enum CellShape {

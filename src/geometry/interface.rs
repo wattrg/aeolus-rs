@@ -1,12 +1,21 @@
 use crate::geometry::vertex::Vertex;
 use crate::util::vector3::Vector3;
 use crate::numerical_methods::number::Number;
-
 use super::geom_calc::compute_centre_of_vertices;
 
 /// Allowable interface shapes
 pub enum InterfaceShape {
     Line,
+}
+
+impl InterfaceShape {
+    pub fn from_number_of_vertices(n_vertices: u8) -> InterfaceShape {
+        match n_vertices {
+            0 | 1 => panic!("Not enough vertices to form an interface: {n_vertices}"),
+            2 => InterfaceShape::Line,
+            _ => panic!("Unsupported number of vertices in interface: {n_vertices}"),
+        }
+    }
 }
 
 /// Describes if the interface is point inwards
@@ -33,17 +42,15 @@ impl <'a> Interface<'a> {
         let t2: Vector3;
         let n: Vector3;
         let area: Number;
-        let shape: InterfaceShape;
-        match vertices.len() {
-            0 | 1 => panic!("An Interface needs at least two vertices"),
-            2 => {
-                t1 = vertices[0].vector_to(vertices[1]).normalised();
+        let shape = InterfaceShape::from_number_of_vertices(vertices.len() as u8);
+        match shape {
+            InterfaceShape::Line => {
+                let v0v1 = vertices[0].vector_to(vertices[1]);
+                t1 = v0v1.normalised();
                 t2 = Vector3{x: 0.0, y: 0.0, z: 1.0};
                 n = t1.cross(&t2).normalised();
-                area = vertices[0].vector_to(vertices[1]).length();
-                shape = InterfaceShape::Line;
+                area = v0v1.length(); // per unit depth
             }
-            _ => panic!("Constructing 3D interface not supported yet"),
         }
         let centre = compute_centre_of_vertices(&vertices);
         Interface{vertices, area, n, t1, t2, shape, centre}
@@ -105,6 +112,30 @@ impl <'a> Interface<'a> {
             true => Direction::Inwards,
             false => Direction::Outwards,
         }
+    }
+
+    fn equal(&self, other: &Vec<&Vertex>) -> bool {
+        for other_vertex in other.iter() {
+            let mut has_vertex = false;
+            for this_vertex in self.vertices.iter() {
+                if this_vertex == other_vertex {
+                    has_vertex = true;
+                    break;
+                }
+            }
+            if !has_vertex {return false;}
+        }
+        true
+    }
+}
+
+impl PartialEq<Vec<&Vertex>> for Interface<'_> {
+    fn eq(&self, other: &Vec<&Vertex>) -> bool {
+        self.equal(other)
+    }
+
+    fn ne(&self, other: &Vec<&Vertex>) -> bool {
+        !self.equal(other)
     }
 }
 
