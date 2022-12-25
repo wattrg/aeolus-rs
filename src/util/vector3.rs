@@ -129,12 +129,11 @@ mod tests {
     }
 
     #[test] 
-    #[should_panic]
     fn partial_eq_different_vecs() {
         let vec1 = Vector3{x: 1.0, y: 2.0, z:3.0};
         let vec2 = Vector3{x: 2.0, y: 2.0, z:3.0};
 
-        assert_eq!(vec1, vec2);
+        assert_ne!(vec1, vec2);
     }
 
     #[test]

@@ -2,6 +2,7 @@ use crate::util::vector3::Vector3;
 use crate::numerical_methods::number::Number;
 
 /// Geometric vertex
+#[derive(Debug)]
 pub struct Vertex {
     pos: Vector3,
     id: usize,
@@ -23,6 +24,7 @@ impl Vertex {
         &self.pos
     }
 
+    /// The id of the vertex
     pub fn id(&self) -> usize {
         self.id
     }
@@ -31,5 +33,46 @@ impl Vertex {
 impl PartialEq for Vertex {
     fn eq(&self, other: &Vertex) -> bool {
         self.id == other.id
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dist_to() {
+        let vertex1 = Vertex{pos: Vector3{x: 1.0, y: 2.0, z: 3.0}, id: 0};
+        let vertex2 = Vertex{pos: Vector3{x: 2.0, y: 3.0, z: 4.0}, id: 1};
+        let result = Number::sqrt(3.);
+        let dist = vertex1.dist_to(&vertex2);
+
+        assert_eq!(dist, result);
+    }
+
+    #[test]
+    fn vector_to() {
+        let vertex1 = Vertex{pos: Vector3{x: 1.0, y: 2.0, z: 3.0}, id: 0};
+        let vertex2 = Vertex{pos: Vector3{x: 2.0, y: 3.0, z: 4.0}, id: 1};
+        let result = Vector3{x: 1.0, y: 1.0, z: 1.0};
+        let vec = vertex1.vector_to(&vertex2);
+
+        assert_eq!(vec, result);
+    }
+
+    #[test]
+    fn partial_eq() {
+        let vertex1 = Vertex{pos: Vector3{x: 1.0, y: 2.0, z: 3.0}, id: 0};
+        let vertex2 = Vertex{pos: Vector3{x: 1.0, y: 1.0, z: 4.0}, id: 0};
+
+        assert_eq!(vertex1, vertex2);
+    }
+
+    #[test]
+    fn partial_ne() {
+        let vertex1 = Vertex{pos: Vector3{x: 1.0, y: 2.0, z: 3.0}, id: 0};
+        let vertex2 = Vertex{pos: Vector3{x: 1.0, y: 1.0, z: 4.0}, id: 1};
+
+        assert_ne!(vertex1, vertex2);
     }
 }
