@@ -1,4 +1,4 @@
-use crate::geometry::vertex::Vertex;
+use crate::grid::vertex::Vertex;
 use crate::util::vector3::Vector3;
 use crate::numerical_methods::number::Number;
 use super::geom_calc::compute_centre_of_vertices;

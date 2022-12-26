@@ -1,5 +1,5 @@
 use crate::numerical_methods::number::Number;
-use crate::geometry::vertex::Vertex;
+use crate::grid::vertex::Vertex;
 use crate::util::vector3::Vector3;
 
 /// Compute the area of a triangle with given vertices
@@ -16,7 +16,7 @@ pub fn triangle_area(vertices: &[&Vertex]) -> Number  {
 
 /// Compute the area of a quadrilateral with given vertices
 pub fn quad_area(vertices: &[&Vertex]) -> Number {
-    debug_assert!(vertices.len() == 4, "Expected 4 points in quadralateral");
+    assert!(vertices.len() == 4, "Expected 4 points in quadralateral");
 
     // use the shoelace formula applied to a quad
     // https://math.stackexchange.com/questions/1259094/coordinate-geometry-area-of-a-quadrilateral
