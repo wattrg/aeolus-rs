@@ -4,6 +4,7 @@ use crate::numerical_methods::number::Number;
 use super::geom_calc::compute_centre_of_vertices;
 
 /// Allowable interface shapes
+#[derive(Debug, PartialEq)]
 pub enum InterfaceShape {
     Line,
 }
@@ -21,11 +22,13 @@ impl InterfaceShape {
 
 /// Describes if the interface is point inwards
 /// or outwards for a particular cell
+#[derive(Debug, PartialEq)]
 pub enum Direction {
     Inwards, Outwards,
 }
 
 /// A geometric interface
+#[derive(Debug)]
 pub struct Interface {
     vertex_ids: Vec<usize>,
     area: Number,
@@ -41,28 +44,26 @@ impl Interface {
     /// Create an interface from a vector of vertices
     /// 
     /// # Parameters
-    /// `vertices`: All the vertices existing in the grid
+    /// * `vertices`: The vertices making up the interface
     ///
-    /// `vertex_ids`: The id's of the vertices in this particular interface
-    ///
-    /// `id`: The id of the interface
-    pub fn new_from_vertices(vertices: &[Vertex], vertex_ids: Vec<usize>, id: usize) -> Interface {
+    /// * `id`: The id of the interface
+    pub fn new_from_vertices(vertices: &[&Vertex], id: usize) -> Interface {
         let t1: Vector3;
         let t2: Vector3;
         let n: Vector3;
         let area: Number;
 
-        // construct temporary vector of vertex references
-        let mut vs: Vec<&Vertex> = Vec::with_capacity(vertex_ids.len());
-        for vertex in vertex_ids.iter() {
-            vs.push(&vertices[*vertex]);
+        // get the id's of the vertices
+        let mut vertex_ids = Vec::with_capacity(vertices.len());
+        for vertex in vertices.iter() {
+            vertex_ids.push(vertex.id());
         }
 
         // shape specific setup
         let shape = InterfaceShape::from_number_of_vertices(vertex_ids.len() as u8);
         match shape {
             InterfaceShape::Line => {
-                let v0v1 = vs[0].vector_to(vs[1]);
+                let v0v1 = vertices[0].vector_to(vertices[1]);
                 t1 = v0v1.normalised();
                 t2 = Vector3{x: 0.0, y: 0.0, z: 1.0};
                 n = t1.cross(&t2).normalised();
@@ -71,7 +72,7 @@ impl Interface {
         }
 
         // compute geometric centre of the cell
-        let centre = compute_centre_of_vertices(&vs);
+        let centre = compute_centre_of_vertices(vertices);
 
         Interface{vertex_ids, area, n, t1, t2, shape, centre, id}
     }
@@ -138,7 +139,7 @@ impl Interface {
         }
     }
 
-    fn equal(&self, other: &[&Vertex]) -> bool {
+    fn equal_to_vertices(&self, other: &[&Vertex]) -> bool {
         for other_vertex in other.iter() {
             let mut has_vertex = false;
             for this_vertex_id in self.vertex_ids.iter() {
@@ -154,8 +155,188 @@ impl Interface {
 }
 
 impl PartialEq<Vec<&Vertex>> for Interface {
-    fn eq(&self, other: &Vec<&Vertex>) -> bool {
-        self.equal(other)
+    fn eq(&self, vertices:&Vec<&Vertex>) -> bool {
+        self.equal_to_vertices(vertices)
     }
 }
 
+impl PartialEq for Interface {
+    fn eq(&self, other: &Interface) -> bool {
+        self.id == other.id
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn equal() {
+        let vertices = vec![
+            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            Vertex::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 1),
+            Vertex::new(Vector3{x: 0.0, y: 1.0, z: 0.0}, 2),
+            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 3),
+        ];
+        let id = 1;
+        let face1 = Interface::new_from_vertices(&[&vertices[1], &vertices[2]], id); 
+
+        let interface_vertices = vec![
+            &vertices[1],
+            &vertices[2],
+        ];
+
+        assert!(face1.equal_to_vertices(&interface_vertices));
+    }
+
+    #[test]
+    fn not_equal() {
+        let vertices = vec![
+            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            Vertex::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 1),
+            Vertex::new(Vector3{x: 0.0, y: 1.0, z: 0.0}, 2),
+            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 3),
+        ];
+        let id = 1;
+        let face1 = Interface::new_from_vertices(&[&vertices[1], &vertices[2]], id); 
+
+        let interface_vertices = vec![
+            &vertices[2],
+            &vertices[3],
+        ];
+
+        assert!(!face1.equal_to_vertices(&interface_vertices));
+    }
+
+    #[test]
+    fn partial_eq() {
+        let vertices = vec![
+            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            Vertex::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 1),
+            Vertex::new(Vector3{x: 0.0, y: 1.0, z: 0.0}, 2),
+            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 3),
+        ];
+        let id = 1;
+        let face1 = Interface::new_from_vertices(&[&vertices[1], &vertices[2]], id); 
+
+        let interface_vertices = vec![
+            &vertices[1],
+            &vertices[2],
+        ];
+
+        assert_eq!(face1, interface_vertices);
+    }
+
+    #[test]
+    fn partial_ne() {
+        let vertices = vec![
+            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            Vertex::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 1),
+            Vertex::new(Vector3{x: 0.0, y: 1.0, z: 0.0}, 2),
+            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 3),
+        ];
+        let id = 1;
+        let face1 = Interface::new_from_vertices(&[&vertices[1], &vertices[2]], id); 
+
+        let interface_vertices = vec![
+            &vertices[0],
+            &vertices[1],
+        ];
+
+        assert_ne!(face1, interface_vertices);
+    }
+
+    #[test]
+    fn area() {
+        let vertices = vec![
+            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
+        ];
+        let interface = Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
+
+        assert_eq!(interface.area(), Number::sqrt(2.));
+    }
+
+    #[test]
+    fn norm() {
+        let vertices = vec![
+            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
+        ];
+        let interface = Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
+
+        let norm = Vector3{x: 1./Number::sqrt(2.), y: -1./Number::sqrt(2.), z: 0.0};
+        assert_eq!(interface.norm(), norm);
+    }
+
+    #[test]
+    fn t1() {
+        let vertices = vec![
+            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
+        ];
+        let interface = Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
+        let t1 = Vector3{x: 1.0/Number::sqrt(2.), y: 1./Number::sqrt(2.), z: 0.0};
+
+        assert_eq!(interface.t1(), t1);
+    }
+
+    #[test]
+    fn t2() {
+        let vertices = vec![
+            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
+        ];
+        let interface = Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
+        let t2 = Vector3{x: 0.0, y: 0.0, z: 1.0};
+
+        assert_eq!(interface.t2(), t2);
+    }
+
+    #[test]
+    fn shape() {
+        let vertices = vec![
+            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
+        ];
+        let interface = Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
+
+        assert_eq!(interface.shape(), &InterfaceShape::Line);
+    }
+
+    #[test]
+    fn dimensions() {
+        let vertices = vec![
+            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
+        ];
+        let interface = Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
+
+        assert_eq!(interface.dimensions(), 2);
+    }
+
+    #[test]
+    fn compute_direction_outwards() {
+        let vertices = vec![
+            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
+        ];
+        let interface = Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
+        let centre = Vector3{x: 0.4, y: 0.6, z: 0.0};
+
+        assert_eq!(interface.compute_direction(&centre), Direction::Outwards);
+    }
+
+    #[test]
+    fn compute_direction_inwards() {
+        let vertices = vec![
+            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
+        ];
+        let interface = Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
+        let centre = Vector3{x: 0.6, y: 0.4, z: 0.0};
+
+        assert_eq!(interface.compute_direction(&centre), Direction::Inwards);
+    }
+}

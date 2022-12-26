@@ -52,42 +52,37 @@ pub struct Cell{
 }
 
 impl Cell {
-    /// Create a cell from the surrounding interfaces
+    /// Create a cell from the surrounding interfaces vertices
     ///
     /// # Parameters
     ///
-    /// * `interfaces`: all of the interfaces in the grid
+    /// * `interfaces`: The interfaces making up the cell
     ///
-    /// * `vertices`: all of the vertices in the grid
-    ///
-    /// * `face_ids`: the id's of the interfaces of the cell
-    ///
-    /// * `vertex_ids`: the ids of the vertices in the cell
+    /// * `vertices`: The vertices making up the cell
     ///
     /// * `id`: The id of the cell
-    pub fn new(interfaces: &[Interface], vertices: &[Vertex], 
-               face_ids: Vec<usize>, vertex_ids: Vec<usize>, id: usize) -> Cell {
+    pub fn new(interfaces: &[&Interface], vertices: &[&Vertex], id: usize) -> Cell {
 
         let shape = CellShape::from_number_of_vertices(vertices.len() as u8);
-        let mut cell_faces = Vec::with_capacity(face_ids.len());
+        let mut cell_faces = Vec::with_capacity(interfaces.len());
 
         // temporary vector of references to the actual vertices
-        let mut vs: Vec<&Vertex> = Vec::with_capacity(vertex_ids.len());
-        for vertex in vertex_ids.iter() {
-            vs.push(&vertices[*vertex]);
+        let mut vertex_ids = Vec::with_capacity(vertices.len());
+        for vertex in vertices.iter() {
+            vertex_ids.push(vertex.id());
         }
-        let centre = compute_centre_of_vertices(&vs);
+        let centre = compute_centre_of_vertices(&vertices);
 
         // create the cell faces
-        for interface in face_ids.iter() {
-            let iface = &interfaces[*interface];
-            let direction = iface.compute_direction(&centre);
-            cell_faces.push(CellFace{interface: *interface, direction});
+        for interface in interfaces.iter() {
+            let face_id = interface.id();
+            let direction = interface.compute_direction(&centre);
+            cell_faces.push(CellFace{interface: face_id, direction});
         }
 
         let volume = match shape {
-            CellShape::Triangle => triangle_area(&vs),
-            CellShape::Quadrilateral => quad_area(&vs),
+            CellShape::Triangle => triangle_area(vertices),
+            CellShape::Quadrilateral => quad_area(vertices),
         };
     
         Cell {

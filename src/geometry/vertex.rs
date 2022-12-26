@@ -9,6 +9,11 @@ pub struct Vertex {
 }
 
 impl Vertex {
+    /// Create a new vertex
+    pub fn new(pos: Vector3, id: usize) -> Vertex {
+        Vertex{pos, id}
+    }
+
     /// Calculate the distance to another `Vertex`
     pub fn dist_to(&self, other: &Vertex) -> Number {
         self.pos.dist_to(&other.pos)  
@@ -39,6 +44,14 @@ impl PartialEq for Vertex {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn new() {
+        let vertex = Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0);
+        let vertex_ref = Vertex{pos: Vector3{x: 0.0, y:0.0, z: 0.0}, id: 0};
+
+        assert_eq!(vertex, vertex_ref);
+    }
 
     #[test]
     fn dist_to() {
@@ -74,5 +87,19 @@ mod tests {
         let vertex2 = Vertex{pos: Vector3{x: 1.0, y: 1.0, z: 4.0}, id: 1};
 
         assert_ne!(vertex1, vertex2);
+    }
+
+    #[test]
+    fn pos() {
+        let vertex = Vertex{pos: Vector3{x: 1.0, y: 2.0, z: 3.0}, id: 0};
+
+        assert_eq!(vertex.pos(), &Vector3{x: 1.0, y: 2.0, z: 3.0});
+    }
+
+    #[test]
+    fn id() {
+        let vertex = Vertex{pos: Vector3{x: 1.0, y: 2.0, z: 3.0}, id: 1};
+
+        assert_eq!(vertex.id(), 1);
     }
 }

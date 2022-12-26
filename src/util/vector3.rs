@@ -105,7 +105,10 @@ impl ops::Sub for &Vector3 {
 
 impl PartialEq for Vector3 {
     fn eq(&self, other: &Self) -> bool {
-        self.x == other.x && self.y == other.y && self.z == other.z
+        let tol = 1e-14;
+        (self.x - other.x).abs() < tol && 
+        (self.y - other.y).abs() < tol && 
+        (self.z - other.z).abs() < tol
     }
 }
 
