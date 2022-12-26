@@ -18,6 +18,14 @@ impl InterfaceShape {
             _ => panic!("Unsupported number of vertices in interface: {n_vertices}"),
         }
     }
+
+    /// Calculate the area of a shape given a set of vertices
+    pub fn area(&self, vertices: &[&Vertex]) -> Number {
+        match &self {
+            InterfaceShape::Line => vertices[0].vector_to(vertices[1])
+                                               .length(),
+        }
+    }
 }
 
 /// Describes if the interface is point inwards
@@ -338,5 +346,16 @@ mod tests {
         let centre = Vector3{x: 0.6, y: 0.4, z: 0.0};
 
         assert_eq!(interface.compute_direction(&centre), Direction::Inwards);
+    }
+
+    #[test]
+    fn vertex_ids() {
+        let vertices = vec![
+            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 3),
+            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
+        ];
+        let interface = Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
+
+        assert_eq!(interface.vertex_ids(), &vec![3, 1]);
     }
 }

@@ -7,6 +7,7 @@ use super::interface::Direction;
 use super::geom_calc::{compute_centre_of_vertices, quad_area, triangle_area};
 
 /// The shape of the cell
+#[derive(Debug, PartialEq)]
 pub enum CellShape {
     Triangle,
     Quadrilateral,
@@ -22,10 +23,19 @@ impl CellShape {
             _ => panic!("Unsupported number of vertices for cell: {n_vertices}"),
         }
     }
+
+    /// Calculate the volume of the shape given a set of vertices
+    pub fn volume(&self, vertices: &[&Vertex]) -> Number {
+        match &self {
+            CellShape::Triangle => triangle_area(vertices),
+            CellShape::Quadrilateral => quad_area(vertices),
+        }
+    }
 }
 
 /// Encodes information about the interface
 /// and whether it is inwards or outwards facing
+#[derive(Debug, PartialEq)]
 pub struct CellFace {
     interface: usize,
     direction: Direction,
@@ -42,6 +52,7 @@ impl CellFace {
 }
 
 /// Encodes geometric data about a cell
+#[derive(Debug, PartialEq)]
 pub struct Cell{
     vertex_ids: Vec<usize>,
     interfaces: Vec<CellFace>,
@@ -80,10 +91,7 @@ impl Cell {
             cell_faces.push(CellFace{interface: face_id, direction});
         }
 
-        let volume = match shape {
-            CellShape::Triangle => triangle_area(vertices),
-            CellShape::Quadrilateral => quad_area(vertices),
-        };
+        let volume = shape.volume(vertices);
     
         Cell {
             vertex_ids,
@@ -120,5 +128,125 @@ impl Cell {
     
     pub fn id(&self) -> usize {
         self.id
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn setup_quad() -> (Vec<Vertex>, Vec<Interface>, Cell) {
+        let vertices = vec![
+            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            Vertex::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 1),
+            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 2),
+            Vertex::new(Vector3{x: 0.0, y: 1.0, z: 0.0}, 3),
+        ];
+
+        let interfaces = vec![
+            Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0),
+            Interface::new_from_vertices(&[&vertices[2], &vertices[1]], 1),
+            Interface::new_from_vertices(&[&vertices[2], &vertices[3]], 2),
+            Interface::new_from_vertices(&[&vertices[3], &vertices[0]], 3),
+        ];
+        let cell = Cell::new(&[&interfaces[0], &interfaces[1], &interfaces[2], &interfaces[3]], 
+                             &[&vertices[0], &vertices[1], &vertices[2], &vertices[3]], 
+                             0); 
+
+        (vertices, interfaces, cell)
+    }
+
+    fn setup_tri() -> (Vec<Vertex>, Vec<Interface>, Cell) {
+        let vertices = vec![
+            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            Vertex::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 1),
+            Vertex::new(Vector3{x: 0.5, y: 1.0, z: 0.0}, 2),
+        ];
+
+        let interfaces = vec![
+            Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0),
+            Interface::new_from_vertices(&[&vertices[2], &vertices[1]], 1),
+            Interface::new_from_vertices(&[&vertices[2], &vertices[0]], 2),
+        ];
+        let cell = Cell::new(&[&interfaces[0], &interfaces[1], &interfaces[2]], 
+                             &[&vertices[0], &vertices[1], &vertices[2]], 
+                             0); 
+
+        (vertices, interfaces, cell)
+    }
+
+    #[test]
+    fn cell_faces_quad() {
+        let (_vertices, _interfaces, cell) = setup_quad();
+        let result = vec![
+            CellFace{interface: 0, direction: Direction::Outwards},
+            CellFace{interface: 1, direction: Direction::Inwards},
+            CellFace{interface: 2, direction: Direction::Outwards},
+            CellFace{interface: 3, direction: Direction::Outwards},
+        ];
+
+        assert_eq!(cell.cell_faces(), &result);
+    }
+
+    #[test]
+    fn cell_faces_tri() {
+        let (_vertices, _interfaces, cell) = setup_tri();
+        let result = vec![
+            CellFace{interface: 0, direction: Direction::Outwards},
+            CellFace{interface: 1, direction: Direction::Inwards},
+            CellFace{interface: 2, direction: Direction::Outwards},
+        ];
+
+        assert_eq!(cell.cell_faces(), &result);
+    }
+
+    #[test]
+    fn shape_quad() {
+        let (_vertices, _interfaces, cell) = setup_quad();
+
+        assert_eq!(cell.shape(), &CellShape::Quadrilateral);
+    }
+
+    #[test]
+    fn shape_tri() {
+        let (_vertices, _interfaces, cell) = setup_tri();
+
+        assert_eq!(cell.shape(), &CellShape::Triangle);
+    }
+
+    #[test]
+    fn quad_volume() {
+        let (_vertices, _interfaces, cell) = setup_quad();
+
+        assert_eq!(cell.volume(), 1.0);
+    }
+
+    #[test]
+    fn tri_volume() {
+        let (_vertices, _interfaces, cell) = setup_tri();
+
+        assert_eq!(cell.volume(), 0.5);
+    }
+
+    #[test]
+    fn vertex_ids() {
+        let (_vertices, _interaces, cell) = setup_quad();
+
+        assert_eq!(cell.vertex_ids(), &vec![0, 1, 2, 3]);
+    }
+
+    #[test]
+    fn centre_tri() {
+        let (_vertices, _interfaces, cell) = setup_tri();
+
+        assert_eq!(cell.centre(), &Vector3{x: 0.5, y: 1./3., z: 0.0});
+    }
+
+    #[test]
+    fn centre_quad() {
+        let (_vertices, _interfaces, cell) = setup_quad();
+        
+        assert_eq!(cell.centre(), &Vector3{x: 0.5, y: 0.5, z: 0.0});
     }
 }
