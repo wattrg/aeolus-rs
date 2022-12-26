@@ -4,7 +4,7 @@ use crate::numerical_methods::number::Number;
 use super::geom_calc::compute_centre_of_vertices;
 
 /// Allowable interface shapes
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum InterfaceShape {
     Line,
 }
@@ -30,7 +30,7 @@ impl InterfaceShape {
 
 /// Describes if the interface is point inwards
 /// or outwards for a particular cell
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Direction {
     Inwards, Outwards,
 }

@@ -7,7 +7,7 @@ pub mod interface;
 /// Handles geometric cells
 pub mod cell;
 
-/// Hanles grid data
-pub mod grid;
+/// Hanles unstructured grids
+pub mod unstructured_grid;
 
 mod geom_calc;

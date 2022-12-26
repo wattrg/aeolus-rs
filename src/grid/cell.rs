@@ -7,7 +7,7 @@ use super::interface::Direction;
 use super::geom_calc::{compute_centre_of_vertices, quad_area, triangle_area};
 
 /// The shape of the cell
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum CellShape {
     Triangle,
     Quadrilateral,
@@ -35,7 +35,7 @@ impl CellShape {
 
 /// Encodes information about the interface
 /// and whether it is inwards or outwards facing
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct CellFace {
     interface: usize,
     direction: Direction,
@@ -82,7 +82,7 @@ impl Cell {
         for vertex in vertices.iter() {
             vertex_ids.push(vertex.id());
         }
-        let centre = compute_centre_of_vertices(&vertices);
+        let centre = compute_centre_of_vertices(vertices);
 
         // create the cell faces
         for interface in interfaces.iter() {
