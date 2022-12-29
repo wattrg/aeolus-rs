@@ -8,6 +8,6 @@ pub mod interface;
 pub mod cell;
 
 /// Hanles unstructured grids
-pub mod unstructured_grid;
+pub mod block;
 
 mod geom_calc;

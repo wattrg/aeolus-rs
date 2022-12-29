@@ -15,6 +15,17 @@ pub struct Vector3 {
 }
 
 impl Vector3 {
+    /// Create a [Vector3] from [Vec<Number>]
+    pub fn new_from_vec(vector: Vec<Number>) -> Vector3 {
+        match vector.len() {
+            0 => panic!("No numbers in the vector"),
+            1 => Vector3{x: vector[0], y: 0.0, z: 0.0},
+            2 => Vector3{x: vector[0], y: vector[1], z: 0.0},
+            3 => Vector3{x: vector[0], y: vector[1], z: vector[2]},
+            _ => panic!("Too many numbers to create a Vector3"),
+        }
+    }
+
     /// Calculate the length of the vector
     pub fn length(&self) -> Number {
         Number::sqrt(self.x*self.x + self.y*self.y + self.z*self.z)

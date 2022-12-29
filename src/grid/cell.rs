@@ -24,6 +24,44 @@ impl CellShape {
         }
     }
 
+    /// return the number of vertices
+    pub fn number_of_vertices(&self) -> usize {
+        match &self {
+            CellShape::Triangle => 3,
+            CellShape::Quadrilateral => 4,
+        }
+    }
+
+    /// Convert SU2 element type to cell shape
+    pub fn from_su2_element_type(elem_type: usize) -> CellShape {
+        match elem_type {
+            5 => CellShape::Triangle,
+            9 => CellShape::Quadrilateral,
+            _ => panic!("Invalid, or unsupported su2 element type"),
+        }
+    }
+
+    /// Determine the id's of each of the vertices in each interface
+    pub fn interfaces(&self, vertices: &[usize]) -> Vec<Vec<usize>> {
+        match &self {
+            CellShape::Triangle => {
+                vec![
+                    vec![vertices[0], vertices[1]],
+                    vec![vertices[1], vertices[2]],
+                    vec![vertices[2], vertices[0]],
+                ]
+            }
+            CellShape::Quadrilateral => {
+                vec![
+                    vec![vertices[0], vertices[1]],
+                    vec![vertices[1], vertices[2]],
+                    vec![vertices[2], vertices[3]],
+                    vec![vertices[3], vertices[0]],
+                ]
+            }
+        }
+    }
+
     /// Calculate the volume of the shape given a set of vertices
     pub fn volume(&self, vertices: &[&Vertex]) -> Number {
         match &self {

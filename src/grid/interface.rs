@@ -147,7 +147,7 @@ impl Interface {
         }
     }
 
-    fn equal_to_vertices(&self, other: &[&Vertex]) -> bool {
+    pub fn equal_to_vertices(&self, other: &[&Vertex]) -> bool {
         for other_vertex in other.iter() {
             let mut has_vertex = false;
             for this_vertex_id in self.vertex_ids.iter() {
@@ -160,10 +160,30 @@ impl Interface {
         }
         true
     }
+
+    pub fn equal_to_vertex_ids(&self, other: &[usize]) -> bool {
+        for other_vertex in other.iter() {
+            let mut has_vertex = false;
+            for this_vertex_id in self.vertex_ids.iter() {
+                if this_vertex_id == other_vertex {
+                    has_vertex = true;
+                    break;
+                }
+            }
+            if !has_vertex {return false;}
+        }
+        true
+    }
 }
 
 impl PartialEq<Vec<&Vertex>> for Interface {
     fn eq(&self, vertices:&Vec<&Vertex>) -> bool {
+        self.equal_to_vertices(vertices)
+    }
+}
+
+impl PartialEq<&[&Vertex]> for Interface {
+    fn eq(&self, vertices: &&[&Vertex]) -> bool {
         self.equal_to_vertices(vertices)
     }
 }
