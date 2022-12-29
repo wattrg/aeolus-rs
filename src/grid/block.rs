@@ -60,7 +60,9 @@ impl Block {
                 let n_points = parse_key_value_pair::<usize>(line);
                 vertices.reserve(n_points);
                 for point_i in 0 .. n_points {
-                    let point_line = line_iter.next().ok_or("Excepted another point, found EOF")??;
+                    let point_line = line_iter
+                        .next()
+                        .ok_or("Excepted another point, found EOF")??;
                     let coords = parse_vector_from_line_with_dim(&point_line, dim);
                     let vertex_pos = Vector3::new_from_vec(coords);
                     vertices.push(Vertex::new(vertex_pos, point_i));                                        
@@ -94,18 +96,22 @@ impl Block {
         for (i, cell_interfaces) in cell_connectivity.iter().enumerate() {
             let mut this_cell_interface_ids: Vec<usize> = vec![];
             for interface in cell_interfaces.iter() {
-                let interface_vertices: Vec<&Vertex> = interface.iter()
-                                                                .map(|vertex_id| &vertices[*vertex_id])
-                                                                .collect();
+                let interface_vertices: Vec<&Vertex> = interface
+                    .iter()
+                    .map(|vertex_id| &vertices[*vertex_id])
+                    .collect();
                 let interface_id = add_interface(&mut interfaces, &interface_vertices);
                 this_cell_interface_ids.push(interface_id);
             }
-            let this_cell_interfaces: Vec<&Interface> = this_cell_interface_ids.iter()
-                                                             .map(|id| &interfaces[*id])
-                                                             .collect();
-            let this_cell_vertices: Vec<&Vertex> = cell_vertices[i].iter()
-                                                                   .map(|id| &vertices[*id])
-                                                                   .collect();
+
+            let this_cell_interfaces: Vec<&Interface> = this_cell_interface_ids
+                .iter()
+                .map(|id| &interfaces[*id] )
+                .collect();
+            let this_cell_vertices: Vec<&Vertex> = cell_vertices[i]
+                .iter()
+                .map(|id| &vertices[*id])
+                .collect();
             cells.push(Cell::new(&this_cell_interfaces, &this_cell_vertices, i));
         }
 
@@ -134,6 +140,7 @@ fn parse_key_value_pair<T>(pair: &str) -> T
 {
     pair.split('=')
         .last().unwrap()
+        .trim()
         .parse().unwrap()
 }
 
@@ -163,7 +170,7 @@ fn add_interface(interfaces: &mut Vec<Interface>, vertices: &[&Vertex]) -> usize
         }
     }
     interfaces.push(Interface::new_from_vertices(vertices, interfaces.len()));
-    interfaces.len()
+    interfaces.len() - 1
 }
 
 /// For handling errors associated with file types we don't know how to read
@@ -223,5 +230,60 @@ mod tests {
         let file_type = GridFileType::from_file_name("grid.su3"); 
         let err = UnknownFileType { name: "grid.su3".to_string(), ext: Some("su3".to_string())};
         assert_eq!(file_type, Err(err));
+    }
+
+    #[test]
+    fn read_su2_file() {
+        let block = Block::new("./tests/data/square.su2".to_string()).unwrap();    
+
+        let vertices = vec![
+            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            Vertex::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 1),
+            Vertex::new(Vector3{x: 2.0, y: 0.0, z: 0.0}, 2),
+            Vertex::new(Vector3{x: 3.0, y: 0.0, z: 0.0}, 3),
+            Vertex::new(Vector3{x: 0.0, y: 1.0, z: 0.0}, 4),
+            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 5),
+            Vertex::new(Vector3{x: 2.0, y: 1.0, z: 0.0}, 6),
+            Vertex::new(Vector3{x: 3.0, y: 1.0, z: 0.0}, 7),
+            Vertex::new(Vector3{x: 0.0, y: 2.0, z: 0.0}, 8),
+            Vertex::new(Vector3{x: 1.0, y: 2.0, z: 0.0}, 9),
+            Vertex::new(Vector3{x: 2.0, y: 2.0, z: 0.0}, 10),
+            Vertex::new(Vector3{x: 3.0, y: 2.0, z: 0.0}, 11),
+            Vertex::new(Vector3{x: 0.0, y: 3.0, z: 0.0}, 12),
+            Vertex::new(Vector3{x: 1.0, y: 3.0, z: 0.0}, 13),
+            Vertex::new(Vector3{x: 2.0, y: 3.0, z: 0.0}, 14),
+            Vertex::new(Vector3{x: 3.0, y: 3.0, z: 0.0}, 15),
+        ];
+
+        let interfaces = vec![
+            Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0), 
+            Interface::new_from_vertices(&[&vertices[1], &vertices[5]], 1),
+            Interface::new_from_vertices(&[&vertices[5], &vertices[4]], 2),
+            Interface::new_from_vertices(&[&vertices[4], &vertices[0]], 3),
+            Interface::new_from_vertices(&[&vertices[1], &vertices[2]], 4),
+            Interface::new_from_vertices(&[&vertices[2], &vertices[6]], 5),
+            Interface::new_from_vertices(&[&vertices[6], &vertices[5]], 6),
+            Interface::new_from_vertices(&[&vertices[2], &vertices[3]], 7),
+            Interface::new_from_vertices(&[&vertices[3], &vertices[7]], 8),
+            Interface::new_from_vertices(&[&vertices[7], &vertices[6]], 9),
+            Interface::new_from_vertices(&[&vertices[5], &vertices[9]], 10),
+            Interface::new_from_vertices(&[&vertices[9], &vertices[8]], 11),
+            Interface::new_from_vertices(&[&vertices[8], &vertices[4]], 12),
+            Interface::new_from_vertices(&[&vertices[6], &vertices[10]], 13), 
+            Interface::new_from_vertices(&[&vertices[10], &vertices[9]], 14),
+            Interface::new_from_vertices(&[&vertices[7], &vertices[11]], 15), 
+            Interface::new_from_vertices(&[&vertices[11], &vertices[10]], 16), 
+            Interface::new_from_vertices(&[&vertices[9], &vertices[13]], 17),
+            Interface::new_from_vertices(&[&vertices[13], &vertices[12]], 18), 
+            Interface::new_from_vertices(&[&vertices[12], &vertices[8]], 19),
+            Interface::new_from_vertices(&[&vertices[10], &vertices[14]], 20),
+            Interface::new_from_vertices(&[&vertices[14], &vertices[13]], 21),
+            Interface::new_from_vertices(&[&vertices[11], &vertices[15]], 22),
+            Interface::new_from_vertices(&[&vertices[15], &vertices[14]], 23),
+        ];
+
+        assert_eq!(block.vertices(), &vertices);
+        assert_eq!(block.interfaces(), &interfaces);
+        assert_eq!(block.cells().len(), 9);
     }
 }

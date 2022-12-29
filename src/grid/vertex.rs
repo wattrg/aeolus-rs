@@ -37,7 +37,7 @@ impl Vertex {
 
 impl PartialEq for Vertex {
     fn eq(&self, other: &Vertex) -> bool {
-        self.id == other.id
+        self.id == other.id && self.pos == other.pos
     }
 }
 
@@ -76,7 +76,7 @@ mod tests {
     #[test]
     fn partial_eq() {
         let vertex1 = Vertex{pos: Vector3{x: 1.0, y: 2.0, z: 3.0}, id: 0};
-        let vertex2 = Vertex{pos: Vector3{x: 1.0, y: 1.0, z: 4.0}, id: 0};
+        let vertex2 = Vertex{pos: Vector3{x: 1.0, y: 2.0, z: 3.0}, id: 0};
 
         assert_eq!(vertex1, vertex2);
     }
