@@ -282,8 +282,30 @@ mod tests {
             Interface::new_from_vertices(&[&vertices[15], &vertices[14]], 23),
         ];
 
+        let cells = vec![
+            Cell::new(&[&interfaces[0], &interfaces[1], &interfaces[2], &interfaces[3]], 
+                      &[&vertices[0], &vertices[1], &vertices[5], &vertices[4]], 0),
+            Cell::new(&[&interfaces[4], &interfaces[5], &interfaces[6], &interfaces[1]], 
+                      &[&vertices[1], &vertices[2], &vertices[6], &vertices[5]], 1),
+            Cell::new(&[&interfaces[7], &interfaces[8], &interfaces[9], &interfaces[5]], 
+                      &[&vertices[2], &vertices[3], &vertices[7], &vertices[6]], 2),
+            Cell::new(&[&interfaces[2], &interfaces[10], &interfaces[11], &interfaces[12]], 
+                      &[&vertices[4], &vertices[5], &vertices[9], &vertices[8]], 3),
+            Cell::new(&[&interfaces[6], &interfaces[13], &interfaces[14], &interfaces[10]], 
+                      &[&vertices[5], &vertices[6], &vertices[10], &vertices[9]], 4),
+            Cell::new(&[&interfaces[9], &interfaces[15], &interfaces[16], &interfaces[13]], 
+                      &[&vertices[6], &vertices[7], &vertices[11], &vertices[10]], 5),
+            Cell::new(&[&interfaces[11], &interfaces[17], &interfaces[18], &interfaces[19]], 
+                      &[&vertices[8], &vertices[9], &vertices[13], &vertices[12]], 6),
+            Cell::new(&[&interfaces[14], &interfaces[20], &interfaces[21], &interfaces[17]], 
+                      &[&vertices[9], &vertices[10], &vertices[14], &vertices[13]], 7),
+            Cell::new(&[&interfaces[16], &interfaces[22], &interfaces[23], &interfaces[20]], 
+                      &[&vertices[10], &vertices[11], &vertices[15], &vertices[14]], 8),
+        ];
+
         assert_eq!(block.vertices(), &vertices);
         assert_eq!(block.interfaces(), &interfaces);
-        assert_eq!(block.cells().len(), 9);
+        assert_eq!(block.cells(), &cells);
+        assert_eq!(block.dimensions(), 2);
     }
 }
