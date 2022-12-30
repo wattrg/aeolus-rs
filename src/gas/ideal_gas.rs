@@ -2,7 +2,10 @@ use super::gas_state::GasState;
 use crate::numerical_methods::number::Number;
 use crate::gas::gas_model::GasModel;
 
+use pyo3::pyclass;
+
 #[allow(non_snake_case)]
+#[pyclass]
 pub struct IdealGas {
     R: Number, // J / kg / K
     Cv: Number, // J / K
