@@ -2,7 +2,7 @@ use super::gas_state::GasState;
 use crate::numerical_methods::number::Number;
 use crate::gas::gas_model::GasModel;
 
-use pyo3::pyclass;
+use pyo3::prelude::*;
 
 #[allow(non_snake_case)]
 #[pyclass]
