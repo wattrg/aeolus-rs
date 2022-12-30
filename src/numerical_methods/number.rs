@@ -65,12 +65,12 @@ impl std::ops::Div for UnitNum {
     }
 }
 
-pub type UnitType = [i8; 3];
+pub type UnitType = [i8; 4];
 
 /// Represents a unit for a number
 // The unit is stored as an array of powers
-// for the particular unit, in order [mass, length, time]
-// e.g. m/s -> [1, 0, -1]
+// for the particular unit, in order [mass, length, time, temp]
+// e.g. m/s -> [1, 0, -1, 0]
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Unit (UnitType);
 
@@ -91,7 +91,7 @@ impl FromStr for Unit {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut unit = s;
-        let mut unit_rep: UnitType = [0, 0, 0];
+        let mut unit_rep: UnitType = [0, 0, 0, 0];
 
         let mut sign = 1;
         let mut pow;
@@ -110,6 +110,11 @@ impl FromStr for Unit {
                 unit = &unit[1..];
                 (unit, pow) = read_and_remove_power(unit);
                 unit_rep[2] += sign * pow;
+            }
+            else if unit.starts_with('K') {
+                unit = &unit[1..];
+                (unit, pow) = read_and_remove_power(unit);
+                unit_rep[3] += sign * pow;
             }
             else if unit.starts_with('*') {
                 sign = 1;
@@ -157,8 +162,8 @@ mod tests {
 
     #[test]
     fn unit_from_string() {
-        let unit = Unit::from_str("kg^2/m^3*s").unwrap();
-        assert_eq!(unit, Unit([2, -3, 1]));
+        let unit = Unit::from_str("kg^2/m^3*s/K").unwrap();
+        assert_eq!(unit, Unit([2, -3, 1, -1]));
     }
 
     #[test]
