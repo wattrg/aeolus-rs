@@ -9,3 +9,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 num-complex = "0.4"
+pyo3 = { version = "0.17", features = ["multiple-pymethods", "extension-module"] }
