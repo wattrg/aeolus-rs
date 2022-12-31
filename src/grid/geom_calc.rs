@@ -1,9 +1,9 @@
-use crate::numerical_methods::number::Number;
+use crate::numerical_methods::number::Real;
 use crate::grid::vertex::Vertex;
 use crate::util::vector3::Vector3;
 
 /// Compute the area of a triangle with given vertices
-pub fn triangle_area(vertices: &[&Vertex]) -> Number  {
+pub fn triangle_area(vertices: &[&Vertex]) -> Real  {
     debug_assert!(vertices.len() == 3, "Expected 3 points in triangle");
 
     let a = vertices[0].pos();
@@ -15,7 +15,7 @@ pub fn triangle_area(vertices: &[&Vertex]) -> Number  {
 }
 
 /// Compute the area of a quadrilateral with given vertices
-pub fn quad_area(vertices: &[&Vertex]) -> Number {
+pub fn quad_area(vertices: &[&Vertex]) -> Real {
     assert!(vertices.len() == 4, "Expected 4 points in quadralateral");
 
     // use the shoelace formula applied to a quad
@@ -35,6 +35,6 @@ pub fn compute_centre_of_vertices(vertices: &[&Vertex]) -> Vector3 {
     for vertex in vertices.iter() {
         centre += *vertex.pos();
     }       
-    centre.scale_in_place(1./vertices.len() as Number);
+    centre.scale_in_place(1./vertices.len() as Real);
     centre
 }

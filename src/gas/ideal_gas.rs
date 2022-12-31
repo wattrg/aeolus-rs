@@ -1,49 +1,47 @@
 use super::gas_state::GasState;
-use crate::numerical_methods::number::Number;
 use crate::gas::gas_model::GasModel;
+use num_complex::ComplexFloat as Number;
 
-use pyo3::prelude::*;
 
 #[allow(non_snake_case)]
-#[pyclass]
-pub struct IdealGas {
-    R: Number, // J / kg / K
-    Cv: Number, // J / K
-    gamma: Number,
+pub struct IdealGas<Num: Number> {
+    R: Num, // J / kg / K
+    Cv: Num, // J / K
+    gamma: Num,
 }
 
 #[allow(non_snake_case)]
-impl IdealGas {
-    pub fn new(R: Number, gamma: Number) -> IdealGas {
-        IdealGas{R, Cv: R/(gamma-1.), gamma}
+impl<Num: Number> IdealGas<Num> {
+    pub fn new(R: Num, gamma: Num) -> IdealGas<Num> {
+        IdealGas{R, Cv: R/(gamma-Num::one()), gamma}
     }
 
-    fn update_sound_speed(&self, gs: &mut GasState) {
-        gs.a = Number::sqrt(self.gamma * self.R * gs.T);
+    fn update_sound_speed(&self, gs: &mut GasState<Num>) {
+        gs.a = Num::sqrt(self.gamma * self.R * gs.T);
     }
 }
 
 #[allow(non_snake_case)]
-impl GasModel for IdealGas {
-    fn update_from_pT(&self, gs: &mut GasState) {
+impl <Num: Number> GasModel<Num> for IdealGas<Num> {
+    fn update_from_pT(&self, gs: &mut GasState<Num>) {
         gs.rho = gs.p / (self.R * gs.T);
         gs.u = self.Cv * gs.T;
         self.update_sound_speed(gs);
     }
 
-    fn update_from_rhoT(&self, gs: &mut GasState) {
+    fn update_from_rhoT(&self, gs: &mut GasState<Num>) {
         gs.p = gs.rho * self.R * gs.T;
         gs.u = self.Cv * gs.T;
         self.update_sound_speed(gs);
     }
 
-    fn update_from_rhou(&self, gs: &mut GasState) {
+    fn update_from_rhou(&self, gs: &mut GasState<Num>) {
         gs.T = gs.u / self.Cv;
         gs.p = gs.rho * self.R * gs.T;
         self.update_sound_speed(gs);
     }
 
-    fn update_from_rhop(&self, gs: &mut GasState) {
+    fn update_from_rhop(&self, gs: &mut GasState<Num>) {
         gs.T = gs.p / (gs.rho * self.R);
         gs.u = self.Cv * gs.T;
         self.update_sound_speed(gs);

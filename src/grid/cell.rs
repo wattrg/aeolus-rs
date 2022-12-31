@@ -1,4 +1,4 @@
-use crate::numerical_methods::number::Number;
+use crate::numerical_methods::number::Real;
 use crate::util::vector3::Vector3;
 
 use super::interface::Interface;
@@ -63,7 +63,7 @@ impl CellShape {
     }
 
     /// Calculate the volume of the shape given a set of vertices
-    pub fn volume(&self, vertices: &[&Vertex]) -> Number {
+    pub fn volume(&self, vertices: &[&Vertex]) -> Real {
         match &self {
             CellShape::Triangle => triangle_area(vertices),
             CellShape::Quadrilateral => quad_area(vertices),
@@ -95,7 +95,7 @@ pub struct Cell{
     vertex_ids: Vec<usize>,
     interfaces: Vec<CellFace>,
     shape: CellShape,
-    volume: Number,
+    volume: Real,
     centre: Vector3,
     id: usize,
 }
@@ -152,7 +152,7 @@ impl Cell {
     }
 
     /// Access the volume of the cell
-    pub fn volume(&self) -> Number {
+    pub fn volume(&self) -> Real {
         self.volume
     }
     

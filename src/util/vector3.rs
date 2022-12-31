@@ -1,22 +1,22 @@
-use crate::numerical_methods::number::Number;
+use crate::numerical_methods::number::Real;
 use std::ops;
 
 /// A generic 3 dimensional vector
 #[derive(Debug, Copy, Clone)]
 pub struct Vector3 {
     /// The x component
-    pub x: Number,
+    pub x: Real,
 
     /// The y component
-    pub y: Number,
+    pub y: Real,
 
     /// The z component
-    pub z: Number,
+    pub z: Real,
 }
 
 impl Vector3 {
     /// Create a [Vector3] from [Vec<Number>]
-    pub fn new_from_vec(vector: Vec<Number>) -> Vector3 {
+    pub fn new_from_vec(vector: Vec<Real>) -> Vector3 {
         match vector.len() {
             0 => panic!("No numbers in the vector"),
             1 => Vector3{x: vector[0], y: 0.0, z: 0.0},
@@ -27,11 +27,11 @@ impl Vector3 {
     }
 
     /// Calculate the length of the vector
-    pub fn length(&self) -> Number {
-        Number::sqrt(self.x*self.x + self.y*self.y + self.z*self.z)
+    pub fn length(&self) -> Real {
+        Real::sqrt(self.x*self.x + self.y*self.y + self.z*self.z)
     }
 
-    pub fn scale_in_place(&mut self, factor: Number) {
+    pub fn scale_in_place(&mut self, factor: Real) {
         self.x *= factor;
         self.y *= factor;
         self.z *= factor;
@@ -61,15 +61,15 @@ impl Vector3 {
     }
     
     /// Calculate the distance to another vector
-    pub fn dist_to(&self, other: &Vector3) -> Number {
+    pub fn dist_to(&self, other: &Vector3) -> Real {
         let x = other.x - self.x;
         let y = other.y - self.y;
         let z = other.z - self.z;
 
-        Number::sqrt(x*x + y*y + z*z)
+        Real::sqrt(x*x + y*y + z*z)
     }
 
-    pub fn dot(&self, other: &Vector3) -> Number {
+    pub fn dot(&self, other: &Vector3) -> Real {
         self.x*other.x + self.y*other.y + self.z*other.z
     }
 
@@ -131,7 +131,7 @@ mod tests {
     #[test]
     fn length() {
         let vec = Vector3{x: 1.0, y: 2.0, z: 3.0};
-        assert_eq!(vec.length(), Number::sqrt(14.));
+        assert_eq!(vec.length(), Real::sqrt(14.));
     }
 
     #[test]
@@ -162,7 +162,7 @@ mod tests {
     fn normalise() {
         let mut vec = Vector3{x: 1.0, y: 2.0, z: 3.0};
         vec.normalise();
-        let length = Number::sqrt(14.);
+        let length = Real::sqrt(14.);
         let normalised_vec = Vector3{x: 1./length, y: 2./length, z: 3./length};
         
         assert_eq!(vec, normalised_vec);
@@ -171,7 +171,7 @@ mod tests {
     #[test]
     fn normalised() {
         let vec = Vector3{x: 1.0, y: 2.0, z: 3.0};
-        let length = Number::sqrt(14.);
+        let length = Real::sqrt(14.);
         let normalised_vec = Vector3{x: 1./length, y: 2./length, z: 3./length};
 
         assert_eq!(vec.normalised(), normalised_vec);
@@ -191,7 +191,7 @@ mod tests {
     fn dist_to() {
         let vec1 = Vector3{x: 1.0, y: 2.0, z: 3.0};
         let vec2 = Vector3{x: 2.0, y: 3.0, z: 4.0};
-        let dist = Number::sqrt(3.);
+        let dist = Real::sqrt(3.);
 
         assert_eq!(vec1.dist_to(&vec2), dist);
     }

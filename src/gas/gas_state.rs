@@ -1,49 +1,35 @@
-use crate::numerical_methods::number::Number;
+use std::fmt::Display;
 
-use pyo3::prelude::*;
+use num_complex::ComplexFloat as Number;
 
 #[allow(non_snake_case)]
 #[derive(Default, PartialEq, Debug)]
-#[pyclass]
-pub struct GasState {
+pub struct GasState<Num: Number> {
     /// The pressure (Pa)
-    #[pyo3(get, set)]
-    pub p: Number,
+    pub p: Num,
 
     /// The temperature (K)
-    #[pyo3(get, set)]
-    pub T: Number,
+    pub T: Num,
 
     /// The density (kg/m^3)
-    #[pyo3(get, set)]
-    pub rho: Number,
+    pub rho: Num,
 
     /// The specific energy (J/kg)
-    #[pyo3(get, set)]
-    pub u: Number,
+    pub u: Num,
 
     /// Sound speed (m/s)
-    #[pyo3(get, set)]
-    pub a: Number,
+    pub a: Num,
 }
 
-#[pymethods]
-impl GasState {
-    #[new]
-    pub fn new() -> GasState {
+impl<Num: Number + Default> GasState<Num> {
+    pub fn new() -> GasState<Num> {
         GasState::default()
     }
-
-    fn __repr__(&self) -> String {
-        self.to_string()
-    }
-
-    fn __str__(&self) -> String {
-        self.to_string()
-    }
 }
 
-impl std::fmt::Display for GasState {
+impl<Num> std::fmt::Display for GasState<Num>
+    where Num: Number + Display
+{
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let string = format!("GasState(p={}, T={}, rho={}, u={}, a={})", 
                            self.p, self.T, self.rho, self.u, self.a);

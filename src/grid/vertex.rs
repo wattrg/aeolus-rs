@@ -1,5 +1,5 @@
 use crate::util::vector3::Vector3;
-use crate::numerical_methods::number::Number;
+use crate::numerical_methods::number::Real;
 
 /// Geometric vertex
 #[derive(Debug)]
@@ -15,7 +15,7 @@ impl Vertex {
     }
 
     /// Calculate the distance to another `Vertex`
-    pub fn dist_to(&self, other: &Vertex) -> Number {
+    pub fn dist_to(&self, other: &Vertex) -> Real {
         self.pos.dist_to(&other.pos)  
     }
 
@@ -57,7 +57,7 @@ mod tests {
     fn dist_to() {
         let vertex1 = Vertex{pos: Vector3{x: 1.0, y: 2.0, z: 3.0}, id: 0};
         let vertex2 = Vertex{pos: Vector3{x: 2.0, y: 3.0, z: 4.0}, id: 1};
-        let result = Number::sqrt(3.);
+        let result = Real::sqrt(3.);
         let dist = vertex1.dist_to(&vertex2);
 
         assert_eq!(dist, result);

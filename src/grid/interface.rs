@@ -1,6 +1,6 @@
 use crate::grid::vertex::Vertex;
 use crate::util::vector3::Vector3;
-use crate::numerical_methods::number::Number;
+use crate::numerical_methods::number::Real;
 use super::geom_calc::compute_centre_of_vertices;
 
 /// Allowable interface shapes
@@ -20,7 +20,7 @@ impl InterfaceShape {
     }
 
     /// Calculate the area of a shape given a set of vertices
-    pub fn area(&self, vertices: &[&Vertex]) -> Number {
+    pub fn area(&self, vertices: &[&Vertex]) -> Real {
         match &self {
             InterfaceShape::Line => vertices[0].vector_to(vertices[1])
                                                .length(),
@@ -39,7 +39,7 @@ pub enum Direction {
 #[derive(Debug)]
 pub struct Interface {
     vertex_ids: Vec<usize>,
-    area: Number,
+    area: Real,
     n: Vector3,
     t1: Vector3,
     t2: Vector3,
@@ -59,7 +59,7 @@ impl Interface {
         let t1: Vector3;
         let t2: Vector3;
         let n: Vector3;
-        let area: Number;
+        let area: Real;
 
         // get the id's of the vertices
         let mut vertex_ids = Vec::with_capacity(vertices.len());
@@ -86,7 +86,7 @@ impl Interface {
     }
 
     /// Access the area of the interface
-    pub fn area(&self) -> Number {
+    pub fn area(&self) -> Real {
         self.area
     }
 
@@ -283,7 +283,7 @@ mod tests {
         ];
         let interface = Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
 
-        assert_eq!(interface.area(), Number::sqrt(2.));
+        assert_eq!(interface.area(), Real::sqrt(2.));
     }
 
     #[test]
@@ -294,7 +294,7 @@ mod tests {
         ];
         let interface = Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
 
-        let norm = Vector3{x: 1./Number::sqrt(2.), y: -1./Number::sqrt(2.), z: 0.0};
+        let norm = Vector3{x: 1./Real::sqrt(2.), y: -1./Real::sqrt(2.), z: 0.0};
         assert_eq!(interface.norm(), norm);
     }
 
@@ -305,7 +305,7 @@ mod tests {
             Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
         ];
         let interface = Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
-        let t1 = Vector3{x: 1.0/Number::sqrt(2.), y: 1./Number::sqrt(2.), z: 0.0};
+        let t1 = Vector3{x: 1.0/Real::sqrt(2.), y: 1./Real::sqrt(2.), z: 0.0};
 
         assert_eq!(interface.t1(), t1);
     }

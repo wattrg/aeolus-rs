@@ -1,17 +1,17 @@
 use std::ops::Deref;
 use std::str::FromStr;
 
-use super::number::Number;
+use super::number::Real;
 
 /// A number with a unit
 #[derive(Debug, PartialEq)]
 pub struct UnitNum {
-    pub value: Number,
+    pub value: Real,
     unit: Unit,
 }
 
 impl UnitNum {
-    pub fn new(value: Number, unit_str: &str) -> UnitNum {
+    pub fn new(value: Real, unit_str: &str) -> UnitNum {
         let unit = Unit::from_str(unit_str).unwrap();
         UnitNum{value, unit}
     }
