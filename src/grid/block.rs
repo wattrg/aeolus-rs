@@ -229,10 +229,10 @@ fn read_boundary(mut line_iter: &mut Lines<BufReader<File>>) -> (String, Vec<Vec
 }
 
 fn next_line(line_iter: &mut Lines<BufReader<File>>) -> String {
-    let line = line_iter.next()
+    line_iter.next()
         .unwrap()
-        .unwrap();
-    line.trim()
+        .unwrap()
+        .trim()
         .to_string()
 }
 

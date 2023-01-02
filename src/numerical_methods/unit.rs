@@ -3,6 +3,30 @@ use std::str::FromStr;
 
 use super::number::Real;
 
+use ndarray::{Array1, Array2};
+use ndarray_linalg::Solve;
+
+/// The base type representing a unit
+/// The unit is stored as an array of powers
+/// for the particular unit, in order [mass, length, time, temp]
+/// e.g. m/s -> [0, 1, -1, 0]
+pub type UnitBase = [i8; 4];
+
+/// Represents a unit for a number
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct Unit (UnitBase);
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct UnitParseError{ unit: String }
+
+impl Deref for Unit {
+    type Target = UnitBase;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 /// A number with a unit
 #[derive(Debug, PartialEq)]
 pub struct UnitNum {
@@ -44,7 +68,7 @@ impl std::ops::Mul for UnitNum {
 
     fn mul(self, rhs: Self) -> Self::Output {
         let value = self.value * rhs.value;
-        let mut unit = UnitType::default();
+        let mut unit = UnitBase::default();
         for (i, elem) in unit.iter_mut().enumerate() {
             *elem = self.unit[i] + rhs.unit[i];
         }
@@ -57,7 +81,7 @@ impl std::ops::Div for UnitNum {
 
     fn div(self, rhs: Self) -> Self::Output {
         let value = self.value / rhs.value;
-        let mut unit = UnitType::default();
+        let mut unit = UnitBase::default();
         for (i, elem) in unit.iter_mut().enumerate() {
             *elem = self.unit[i] - rhs.unit[i];
         }
@@ -65,26 +89,6 @@ impl std::ops::Div for UnitNum {
     }
 }
 
-/// The base type representing a unit
-/// The unit is stored as an array of powers
-/// for the particular unit, in order [mass, length, time, temp]
-/// e.g. m/s -> [0, 1, -1, 0]
-pub type UnitType = [i8; 4];
-
-/// Represents a unit for a number
-#[derive(Debug, Default, PartialEq, Eq)]
-pub struct Unit (UnitType);
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct UnitParseError{ unit: String }
-
-impl Deref for Unit {
-    type Target = UnitType;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
 
 
 impl FromStr for Unit {
@@ -92,7 +96,7 @@ impl FromStr for Unit {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut unit = s;
-        let mut unit_rep: UnitType = [0, 0, 0, 0];
+        let mut unit_rep: UnitBase = [0, 0, 0, 0];
 
         let mut sign = 1;
         let mut pow;
@@ -154,6 +158,91 @@ fn read_and_remove_power(mut unit: &str) -> (&str, i8) {
         return (unit, pow);
     }
     (unit, 1)
+}
+
+pub struct RefDim {
+    ref_mass: Real,
+    ref_length: Real,
+    ref_time: Real,
+    ref_temp: Real,
+}
+
+impl RefDim {
+    pub fn new(reference_values: Vec<UnitNum>) -> RefDim {
+        let (included_units, n_units) = RefDim::count_units(&reference_values);
+        let mut a = Array2::<Real>::zeros((n_units, n_units));
+        for row in 0..n_units {
+            for col in 0..n_units {
+                let unit_index = included_units[col];
+                a[[row, col]] = reference_values[row].unit()[unit_index] as f64;
+            }
+        }
+        let mut b = Array1::<Real>::zeros(n_units);
+        for i in 0..n_units {
+            b[i] = reference_values[i].value.log10();
+        }
+        let x_star = a.solve(&b).unwrap();
+        let mut x = [0.; 4];
+        for (i, x_star_i) in x_star.iter().enumerate() {
+            x[included_units[i]] = 10.0_f64.powf(*x_star_i);
+        }
+        RefDim{
+            ref_mass: x[0],
+            ref_length: x[1],
+            ref_time: x[2],
+            ref_temp: x[3],
+        }
+    }
+
+    pub fn mass(&self) -> Real {
+        self.ref_mass
+    }
+
+    pub fn length(&self) -> Real {
+        self.ref_length
+    }
+
+    pub fn time(&self) -> Real {
+        self.ref_time
+    }
+
+    pub fn temp(&self) -> Real {
+        self.ref_temp
+    }
+
+    pub fn velocity(&self) -> Real {
+        self.ref_length / self.ref_time
+    }
+
+    pub fn density(&self) -> Real {
+        self.ref_mass / self.ref_length.powi(3)
+    }
+
+    pub fn viscosity(&self) -> Real {
+        self.ref_length * self.velocity()
+    }
+
+    fn count_units(reference_values: &Vec<UnitNum>) -> (Vec<usize>, usize) {
+        let mut included_units = Vec::new();
+        for reference_value in reference_values.iter() {
+            let unit = reference_value.unit();
+            for (i, val) in unit.into_iter().enumerate() {
+                if val != 0 && !included_units.contains(&i) {
+                    included_units.push(i);
+                }
+            }
+        }
+        included_units.sort();
+        let n_units = included_units.len();
+        if reference_values.len() > n_units {
+            panic!("Over constrained system of reference units");
+        }
+        else if reference_values.len() < n_units {
+            panic!("Under constrained system of reference units");
+        }
+
+        (included_units, n_units)
+    }
 }
 
 
@@ -223,6 +312,20 @@ mod tests {
         let result = UnitNum::new(2., "kg*m^2/s^2");
 
         assert_eq!(num1/num2, result);
+    }
+
+    #[test]
+    fn ref_dim() {
+        let length = UnitNum::new(6., "m");
+        let velocity = UnitNum::new(1., "m/s");
+        let density = UnitNum::new(2., "kg/m^3");
+        let ref_dim = RefDim::new(vec![length, velocity, density]);
+
+        assert!((ref_dim.length() - 6.0) < 1e-13);
+        assert!((ref_dim.velocity() - 1.0) < 1e-13);
+        assert!((ref_dim.density() - 2.) < 1e-13);
+        assert!((ref_dim.mass() - 432.0) < 1e-13);
+        assert!((ref_dim.time() - 6.0) < 1e-13);
     }
 }
 
