@@ -1,6 +1,10 @@
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
+use std::io::Lines;
 use std::io::prelude::*;
+
+use pyo3::prelude::*;
 
 use super::cell::Cell;
 use super::vertex::Vertex;
@@ -15,20 +19,21 @@ pub struct Block {
     vertices: Vec<Vertex>,
     interfaces: Vec<Interface>,
     cells: Vec<Cell>,
+    boundaries: HashMap<String, Vec<usize>>,
     dimensions: u8,
 }
 
 impl Block {
     /// Create a new block from a file. Currently supported file types are:
     /// * su2
-    pub fn new(file_name: String) -> DynamicResult<Block> {
+    pub fn new(file_name: &str) -> DynamicResult<Block> {
         let ext = GridFileType::from_file_name(&file_name)?;
         match ext {
             GridFileType::Su2 => Block::new_from_su2(file_name),
         }
     }
 
-    fn new_from_su2(file_name: String) -> DynamicResult<Block> {
+    fn new_from_su2(file_name: &str) -> DynamicResult<Block> {
         // open the file
         let file = File::open(&file_name)?;
         let reader = BufReader::new(file);
@@ -42,6 +47,8 @@ impl Block {
         let mut vertices: Vec<Vertex> = vec![];
         let mut cell_connectivity: Vec<Vec<Vec<usize>>> = vec![]; 
         let mut cell_vertices: Vec<Vec<usize>> = vec![];
+        let mut boundary_faces: HashMap<String, Vec<Vec<usize>>> = HashMap::new();
+        let mut boundaries: HashMap<String, Vec<usize>> = HashMap::new();
 
         let mut line_iter = reader.lines();
         while let Some(line) = line_iter.next() {
@@ -56,13 +63,12 @@ impl Block {
             
             // the position of each vertex
             else if line.starts_with("NPOIN=") {
-                let dim = dimensions.expect("Number of dimension should be set before vertex coordinates");
+                let dim = dimensions
+                    .expect("Number of dimension should be set before vertex coordinates");
                 let n_points = parse_key_value_pair::<usize>(line);
                 vertices.reserve(n_points);
                 for point_i in 0 .. n_points {
-                    let point_line = line_iter
-                        .next()
-                        .ok_or("Excepted another point, found EOF")??;
+                    let point_line = next_line(&mut line_iter);
                     let coords = parse_vector_from_line_with_dim(&point_line, dim);
                     let vertex_pos = Vector3::new_from_vec(coords);
                     vertices.push(Vertex::new(vertex_pos, point_i));                                        
@@ -78,7 +84,7 @@ impl Block {
                 cell_connectivity.reserve(n_elem);
                 cell_vertices.reserve(n_elem);
                 for _ in 0 .. n_elem {
-                    let cell_line = line_iter.next().ok_or("Excpected another cell, found EOF")??;
+                    let cell_line = next_line(&mut line_iter);
                     let cell_definition = parse_vector_from_line::<usize>(&cell_line);
                     let shape = CellShape::from_su2_element_type(cell_definition[0]);
                     let this_cell_vertices = &cell_definition[1..];
@@ -87,7 +93,14 @@ impl Block {
                 }
             }
 
-            // boundary condition data will be read here
+            // boundary conditions
+            else if line.starts_with("NMARK=") {
+                let n_boundaries = parse_key_value_pair(&line);
+                for _ in 0 .. n_boundaries {
+                    let (tag, bndry_faces) = read_boundary(&mut line_iter);
+                    boundary_faces.insert(tag, bndry_faces);
+                }
+            }
         }
         // now that we've read the file, we can build the interfaces and cells
         let n_cells = n_cells.expect("Could not find connectivity");
@@ -115,7 +128,21 @@ impl Block {
             cells.push(Cell::new(&this_cell_interfaces, &this_cell_vertices, i));
         }
 
-        Ok(Block{vertices, interfaces, cells, dimensions: dimensions.unwrap() as u8})
+        // now we can find the interfaces on the boundaries
+        for (tag, faces_on_boundary) in boundary_faces {
+            let mut interfaces_on_boundary = Vec::new();
+            for vertex_ids_in_face in faces_on_boundary {
+                let vertices_in_face: Vec<&Vertex> = vertex_ids_in_face[1..]
+                    .iter()
+                    .map(|id| &vertices[*id])
+                    .collect();
+                let interface_id = find_interface_with_vertices(&interfaces, &vertices_in_face);
+                interfaces_on_boundary.push(interface_id);
+            }
+            boundaries.insert(tag, interfaces_on_boundary);
+        }
+
+        Ok(Block{vertices, interfaces, cells, boundaries, dimensions: dimensions.unwrap() as u8})
     }
 
     pub fn vertices(&self) -> &Vec<Vertex> {
@@ -132,6 +159,10 @@ impl Block {
 
     pub fn dimensions(&self) -> u8 {
         self.dimensions
+    }
+
+    pub fn boundaries(&self) -> &HashMap<String, Vec<usize>> {
+        &self.boundaries
     }
 }
 
@@ -171,6 +202,38 @@ fn add_interface(interfaces: &mut Vec<Interface>, vertices: &[&Vertex]) -> usize
     }
     interfaces.push(Interface::new_from_vertices(vertices, interfaces.len()));
     interfaces.len() - 1
+}
+
+fn find_interface_with_vertices(interfaces: &Vec<Interface>, vertices: &[&Vertex]) -> usize{
+    for interface in interfaces.iter() {
+        if interface.equal_to_vertices(vertices) {
+            return interface.id();
+        }
+    }
+    panic!("Could not find interface with vertices");
+}
+
+fn read_boundary(mut line_iter: &mut Lines<BufReader<File>>) -> (String, Vec<Vec<usize>>) {
+    let bndry_line = next_line(&mut line_iter);
+    assert!(bndry_line.starts_with("MARKER_TAG"));
+    let tag = bndry_line.split_once('=').unwrap().1.to_string();
+    let bndry_line = next_line(&mut line_iter);
+    assert!(bndry_line.starts_with("MARKER_ELEMS"));
+    let number_interfaces = parse_key_value_pair::<usize>(&bndry_line);
+    let mut bndry_interfaces: Vec<Vec<usize>> = Vec::with_capacity(number_interfaces);
+    for _ in 0 .. number_interfaces {
+        let bndry_line = next_line(&mut line_iter);
+        bndry_interfaces.push(parse_vector_from_line(&bndry_line));
+    }
+    (tag, bndry_interfaces)
+}
+
+fn next_line(line_iter: &mut Lines<BufReader<File>>) -> String {
+    let line = line_iter.next()
+        .unwrap()
+        .unwrap();
+    line.trim()
+        .to_string()
 }
 
 /// For handling errors associated with file types we don't know how to read
@@ -214,6 +277,24 @@ impl GridFileType {
     }
 }
 
+/// Python facing wrapper for a Block
+#[cfg(not(test))]
+#[pyclass(name="Block")]
+pub struct PyBlock {
+    pub inner: Block,
+}
+
+#[cfg(not(test))]
+#[pymethods]
+impl PyBlock {
+    #[new]
+    fn new(file_name: &str) -> PyBlock {
+        PyBlock {inner: Block::new(file_name).unwrap()}
+    }
+}
+
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -234,7 +315,7 @@ mod tests {
 
     #[test]
     fn read_su2_file() {
-        let block = Block::new("./tests/data/square.su2".to_string()).unwrap();    
+        let block = Block::new("./tests/data/square.su2").unwrap();    
 
         let vertices = vec![
             Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
@@ -303,9 +384,17 @@ mod tests {
                       &[&vertices[10], &vertices[11], &vertices[15], &vertices[14]], 8),
         ];
 
+        let boundaries = HashMap::from([
+            ("slip_wall_bottom".to_string(), vec![0, 4, 7]),
+            ("outflow".to_string(), vec![8, 15, 22]),
+            ("slip_wall_top".to_string(), vec![18, 21, 23]),
+            ("inflow".to_string(), vec![3, 12, 19]),
+        ]);
+
         assert_eq!(block.vertices(), &vertices);
         assert_eq!(block.interfaces(), &interfaces);
         assert_eq!(block.cells(), &cells);
+        assert_eq!(block.boundaries(), &boundaries);
         assert_eq!(block.dimensions(), 2);
     }
 }
