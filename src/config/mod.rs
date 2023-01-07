@@ -1,18 +1,25 @@
 use std::path::{PathBuf, Path};
 use serde_derive::{Serialize, Deserialize};
-
-use crate::{gas::GasModels, solvers::Solvers};
+use config::{Config, ConfigError, File};
+use std::env;
 
 /// Configuration for the program
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Config {
+pub struct AeolusSettings {
     verbosity: Verbosity,
     file_structure: FileStructure,
-    gas_model: GasModels,
-    solver: Solvers,
 }
 
-impl Config {
+impl AeolusSettings {
+    pub fn new() -> Result<AeolusSettings, ConfigError> {
+        let aeolus_home = env::var("AEOLUS_HOME").unwrap_or_else(|_| "src".into());
+        let s = Config::builder()
+            .add_source(File::with_name(&format!("{}/config/default.toml", aeolus_home)))
+            .add_source(File::with_name("local.toml").required(false))
+            .build()?;
+        s.try_deserialize()
+    }
+
     pub fn verbosity(&self) -> &Verbosity {
         &self.verbosity
     }
@@ -59,4 +66,3 @@ impl FileStructure {
 pub enum Verbosity {
     Error, Warning, Debug 
 }
-

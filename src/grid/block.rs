@@ -27,7 +27,7 @@ impl Block {
     /// Create a new block from a file. Currently supported file types are:
     /// * su2
     pub fn new(file_name: &str) -> DynamicResult<Block> {
-        let ext = GridFileType::from_file_name(&file_name)?;
+        let ext = GridFileType::from_file_name(file_name)?;
         match ext {
             GridFileType::Su2 => Block::new_from_su2(file_name),
         }
@@ -95,7 +95,7 @@ impl Block {
 
             // boundary conditions
             else if line.starts_with("NMARK=") {
-                let n_boundaries = parse_key_value_pair(&line);
+                let n_boundaries = parse_key_value_pair(line);
                 for _ in 0 .. n_boundaries {
                     let (tag, bndry_faces) = read_boundary(&mut line_iter);
                     boundary_faces.insert(tag, bndry_faces);
@@ -204,7 +204,7 @@ fn add_interface(interfaces: &mut Vec<Interface>, vertices: &[&Vertex]) -> usize
     interfaces.len() - 1
 }
 
-fn find_interface_with_vertices(interfaces: &Vec<Interface>, vertices: &[&Vertex]) -> usize{
+fn find_interface_with_vertices(interfaces: &[Interface], vertices: &[&Vertex]) -> usize{
     for interface in interfaces.iter() {
         if interface.equal_to_vertices(vertices) {
             return interface.id();
@@ -213,16 +213,16 @@ fn find_interface_with_vertices(interfaces: &Vec<Interface>, vertices: &[&Vertex
     panic!("Could not find interface with vertices");
 }
 
-fn read_boundary(mut line_iter: &mut Lines<BufReader<File>>) -> (String, Vec<Vec<usize>>) {
-    let bndry_line = next_line(&mut line_iter);
+fn read_boundary(line_iter: &mut Lines<BufReader<File>>) -> (String, Vec<Vec<usize>>) {
+    let bndry_line = next_line(line_iter);
     assert!(bndry_line.starts_with("MARKER_TAG"));
     let tag = bndry_line.split_once('=').unwrap().1.to_string();
-    let bndry_line = next_line(&mut line_iter);
+    let bndry_line = next_line(line_iter);
     assert!(bndry_line.starts_with("MARKER_ELEMS"));
     let number_interfaces = parse_key_value_pair::<usize>(&bndry_line);
     let mut bndry_interfaces: Vec<Vec<usize>> = Vec::with_capacity(number_interfaces);
     for _ in 0 .. number_interfaces {
-        let bndry_line = next_line(&mut line_iter);
+        let bndry_line = next_line(line_iter);
         bndry_interfaces.push(parse_vector_from_line(&bndry_line));
     }
     (tag, bndry_interfaces)

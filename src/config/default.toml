@@ -1,0 +1,8 @@
+verbosity = "Error"
+
+[file_structure]
+solver = "config/solver"
+discretisation = "config/discretisation"
+gas_model = "config/gas_model"
+grid = "grid"
+fluid = "fluid"

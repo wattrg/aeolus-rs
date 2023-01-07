@@ -1,5 +1,6 @@
 use std::ops::Deref;
 use std::str::FromStr;
+use std::cmp::Ordering;
 
 use super::number::Real;
 
@@ -234,14 +235,11 @@ impl RefDim {
         }
         included_units.sort();
         let n_units = included_units.len();
-        if reference_values.len() > n_units {
-            panic!("Over constrained system of reference units");
+        match reference_values.len().cmp(&n_units){
+            Ordering::Less => panic!("Under constrained system of reference units"),
+            Ordering::Greater => panic!("Over constrained system of reference units"),
+            Ordering::Equal => (included_units, n_units),
         }
-        else if reference_values.len() < n_units {
-            panic!("Under constrained system of reference units");
-        }
-
-        (included_units, n_units)
     }
 }
 
@@ -326,6 +324,38 @@ mod tests {
         assert!((ref_dim.density() - 2.) < 1e-13);
         assert!((ref_dim.mass() - 432.0) < 1e-13);
         assert!((ref_dim.time() - 6.0) < 1e-13);
+    }
+
+    #[test]
+    fn ref_dim_temp() {
+        let mass = UnitNum::new(6., "kg");
+        let time = UnitNum::new(2., "s");
+        let temp = UnitNum::new(3., "K");
+        let ref_dim = RefDim::new(vec![mass, time, temp]);
+
+        assert!((ref_dim.temp() - 3.) < 1e-13);
+        assert!((ref_dim.mass() - 6.) < 1e-13);
+        assert!((ref_dim.time() - 2.) < 1e-13);
+    }
+
+    #[test]
+    #[should_panic]
+    fn under_constrained_ref_dim() {
+        let density = UnitNum::new(1., "kg/m^3");
+        let velocity = UnitNum::new(2., "m/s");
+
+        let _ref_dim = RefDim::new(vec![density, velocity]);
+    }
+
+    #[test]
+    #[should_panic]
+    fn over_constrained_ref_dim() {
+        let density = UnitNum::new(1., "kg/m^3");
+        let velocity = UnitNum::new(2., "m/s");
+        let length = UnitNum::new(3., "m");
+        let mass = UnitNum::new(4., "kg");
+
+        let _ref_dim = RefDim::new(vec![density, velocity, length, mass]);
     }
 }
 
