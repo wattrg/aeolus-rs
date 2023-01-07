@@ -23,6 +23,7 @@ pub fn setup_cli() -> Command {
         )
         .arg(
             Arg::new("verbosity")
+                .help("Set amout of information printed")
                 .short('v')
                 .long("verbosity")
         )
