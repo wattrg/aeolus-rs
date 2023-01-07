@@ -1,30 +1,31 @@
-use clap::{Command, Arg};
+use std::path::PathBuf;
 
-pub fn setup_cli() -> Command {
-    Command::new("aeolus")
-        .about("A toy CFD code")
-        .version("0.1")
-        .subcommand_required(true)
-        .subcommand(
-            Command::new("prep")
-                .about("Prepare a simulation")
-                .arg(
-                    Arg::new("sim")
-                )
-                .arg_required_else_help(true),
-        )
-        .subcommand(
-            Command::new("run")
-                .about("Run a simulation"),
-        )
-        .subcommand(
-            Command::new("clean")
-                .about("Clean out the simulation files"),
-        )
-        .arg(
-            Arg::new("verbosity")
-                .help("Set amout of information printed")
-                .short('v')
-                .long("verbosity")
-        )
+use clap::{Parser, Subcommand};
+
+use super::settings::Verbosity;
+
+#[derive(Debug, Parser)]
+#[command(about, version)]
+pub struct Cli {
+    #[arg(short, long)]
+    pub verbosity: Option<Verbosity>,
+
+    #[command(subcommand)]
+    pub command: Commands,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum Commands {
+    /// Prepare simulation files
+    #[command(arg_required_else_help = true)]
+    Prep {
+        /// The file defining the simulation
+        prep_file: PathBuf
+    },
+
+    /// Run a simulation
+    Run,
+
+    /// Clean simulation files
+    Clean,
 }

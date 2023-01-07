@@ -1,25 +1,27 @@
 pub mod config;
 
-use crate::config::{settings::AeolusSettings, cli::setup_cli};
+use crate::config::{settings::AeolusSettings, cli::{Cli,Commands}};
+use clap::Parser;
 
 fn main() {
     // parse the command line arguments
-    let cli = setup_cli().get_matches(); 
+    let args = Cli::parse(); 
 
     // set up generic settings
-    let _settings = AeolusSettings::new(&cli).unwrap();
+    let settings = AeolusSettings::new(&args).unwrap();
+
+    println!("verbosity = {}", settings.verbosity());
 
     // perform the sub command requested by the user
-    match cli.subcommand() {
-        Some(("prep", prep_matches)) => {
-            println!("Prepping simulation with {:?}", prep_matches.get_one::<String>("sim"));
+    match args.command {
+        Commands::Prep{prep_file} => {
+            println!("Preparing a simulation with {:?}", prep_file);
         }
-        Some(("run", _run_mathces)) => {
+        Commands::Run => {
             println!("Running the simulation");
         }
-        Some(("clean", _clean_matches)) => {
+        Commands::Clean => {
             println!("Cleaning the simulation files");
         }
-        _ => unreachable!(),
     }
 }
