@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
 use num_complex::ComplexFloat as Number;
+
 use pyo3::prelude::*;
 
 use crate::numerical_methods::number::Real;

@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use pyo3::prelude::*;
 
 use super::cell::Cell;
+use super::su2::write_su2;
 use super::vertex::Vertex;
 use super::interface::Interface;
 use crate::DynamicResult;
@@ -71,6 +72,15 @@ impl BlockIO {
             }
         }
     }
+
+    pub fn write_block(&self, block: Block, file_type: GridFileType, mut file_path: PathBuf) {
+        let ext = file_type.extension();
+        file_path.set_extension(ext);
+
+        match file_type {
+            GridFileType::Su2 => write_su2(&file_path, block),
+        }
+    }
 }
 
 
@@ -86,7 +96,9 @@ impl std::error::Error for UnknownFileType {}
 impl std::fmt::Display for UnknownFileType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match &self.ext {
-            Some(extension) => write!(f, "Unknown extension '{}' for file '{:?}'", extension, self.name),
+            Some(extension) => write!(
+                f, "Unknown extension '{}' for file '{:?}'", extension, self.name
+            ),
             None => write!(f, "No extension to file: {:?}", self.name),
         }
     }
@@ -111,6 +123,12 @@ impl GridFileType {
             Some("su2") => Ok(GridFileType::Su2),
             Some(unknown_ext) => Err(UnknownFileType::new(file_path.to_owned(), Some(unknown_ext.to_string()))),
             None => Err(UnknownFileType::new(file_path.to_owned(), None)),
+        }
+    }
+
+    pub fn extension(&self) -> &str {
+        match &self {
+            GridFileType::Su2 => "su2",
         }
     }
 }
@@ -150,8 +168,17 @@ impl PyBlockIO {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::grid::{vertex::Vertex, interface::Interface, cell::Cell};
-    use crate::util::vector3::Vector3;
+
+    use std::path::PathBuf;
+    use std::collections::HashMap;
+    use crate::{
+        util::vector3::Vector3,
+        grid::{
+            vertex::Vertex,
+            interface::Interface,
+            cell::Cell,
+        }
+    };
 
     #[test]
     fn grid_file_type() {
@@ -167,11 +194,7 @@ mod tests {
         assert_eq!(file_type, Err(err));
     }
 
-    #[test]
-    fn read_su2_file() {
-        let mut block_io = BlockIO::new();
-        let block = block_io.create_block(&PathBuf::from("./tests/data/square.su2")).unwrap();    
-
+    fn create_block_elements() -> (Vec<Vertex>, Vec<Interface>, Vec<Cell>, HashMap<String, Vec<usize>>) {
         let vertices = vec![
             Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
             Vertex::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 1),
@@ -245,6 +268,15 @@ mod tests {
             ("slip_wall_top".to_string(), vec![18, 21, 23]),
             ("inflow".to_string(), vec![3, 12, 19]),
         ]);
+        (vertices, interfaces, cells, boundaries)
+    }
+
+    #[test]
+    fn read_su2_file() {
+        let mut block_io = BlockIO::new();
+        let block = block_io.create_block(&PathBuf::from("./tests/data/square.su2")).unwrap();    
+
+        let (vertices, interfaces, cells, boundaries) = create_block_elements();
 
         assert_eq!(block.vertices(), &vertices);
         assert_eq!(block.interfaces(), &interfaces);
@@ -253,3 +285,4 @@ mod tests {
         assert_eq!(block.dimensions(), 2);
     }
 }
+

@@ -26,6 +26,19 @@ impl InterfaceShape {
                                                .length(),
         }
     }
+
+    pub fn from_su2_element_type(elem_type: usize) -> InterfaceShape {
+        match elem_type {
+            3 => InterfaceShape::Line,
+            _ => panic!("Invalid or unsupported su2 interface shape"),
+        }
+    }
+
+    pub fn to_su2_element_type(&self) -> usize {
+        match &self {
+            InterfaceShape::Line => 3,
+        }
+    }
 }
 
 /// Describes if the interface is point inwards

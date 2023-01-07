@@ -41,6 +41,13 @@ impl CellShape {
         }
     }
 
+    pub fn to_su2_element_type(&self) -> usize {
+        match &self {
+            CellShape::Triangle => 5,
+            CellShape::Quadrilateral => 9,
+        }
+    }
+
     /// Determine the id's of each of the vertices in each interface
     pub fn interfaces(&self, vertices: &[usize]) -> Vec<Vec<usize>> {
         match &self {

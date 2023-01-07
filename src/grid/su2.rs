@@ -1,5 +1,5 @@
 use std::path::Path;
-use std::io::{Lines, BufReader, BufRead};
+use std::io::{Lines, BufReader, BufRead, BufWriter, Write};
 use std::fs::File;
 use std::collections::HashMap;
 
@@ -119,6 +119,53 @@ pub fn read_su2(file_path: &Path, id: usize) -> DynamicResult<Block> {
     }
 
     Ok(Block::new(vertices, interfaces, cells, boundaries, dimensions.unwrap() as u8, id))
+}
+
+pub fn write_su2(file_path: &Path, block: Block) {
+    let file = File::open(file_path).unwrap(); 
+    let mut buffer = BufWriter::new(file);
+
+    // the number of dimensions
+    writeln!(buffer, "NDIME={}", block.dimensions()).unwrap();
+
+    // the position of the vertices
+    writeln!(buffer, "NPOIN={}", block.vertices().len()).unwrap();
+    for vertex in block.vertices().iter() {
+        write!(buffer, "{}", vertex.pos().x).unwrap();
+        write!(buffer, " {}", vertex.pos().y).unwrap();
+        if block.dimensions() == 3 {
+            write!(buffer, " {}", vertex.pos().z).unwrap();
+        }
+        writeln!(buffer).unwrap();
+    }
+
+    // the connectivity
+    writeln!(buffer, "NELEM={}", block.cells().len()).unwrap();
+    for cell in block.cells().iter() {
+        let element_type = cell.shape().to_su2_element_type();
+        write!(buffer, "{}", element_type).unwrap();
+        for vertex_id in cell.vertex_ids().iter() {
+            write!(buffer, " {} ", vertex_id).unwrap();
+        }
+        writeln!(buffer).unwrap();
+    }
+
+    // boundaries
+    let interfaces = block.interfaces();
+    writeln!(buffer, "NMARK={}", block.boundaries().len()).unwrap();
+    for (tag, bndry_interfaces) in block.boundaries().iter() {
+        writeln!(buffer, "MARKER_TAG={}", tag).unwrap();
+        writeln!(buffer, "MARKER_ELEMS={}", interfaces.len()).unwrap();
+        for interface in bndry_interfaces.iter() {
+            let iface = &interfaces[*interface];
+            let shape = iface.shape().to_su2_element_type();
+            write!(buffer, "{}", shape).unwrap();
+            for vertex_id in iface.vertex_ids().iter() {
+                write!(buffer, " {}", vertex_id).unwrap();
+            }
+            writeln!(buffer).unwrap();
+        }
+    }
 }
 
 fn parse_key_value_pair<T>(pair: &str) -> T
