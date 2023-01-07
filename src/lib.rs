@@ -18,5 +18,6 @@ fn aeolus_rs(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<gas::gas_state::PyGasState>()?;
     m.add_class::<gas::ideal_gas::PyIdealGas>()?;
     m.add_class::<grid::block::PyBlock>()?;
+    m.add_class::<grid::block::PyBlockIO>()?;
     Ok(())
 }
