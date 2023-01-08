@@ -1,6 +1,5 @@
-pub mod config;
 
-use crate::config::{settings::AeolusSettings, cli::{Cli,Commands}};
+use aeolus_rs::config::{settings::AeolusSettings, cli::{Cli,Commands}};
 use clap::Parser;
 
 fn main() {

@@ -5,7 +5,7 @@ edition = "2021"
 
 [lib]
 name = "aeolus_rs"
-crate-type = ["cdylib"]
+crate-type = ["lib", "cdylib"]
 
 [dependencies]
 num-complex = "0.4"

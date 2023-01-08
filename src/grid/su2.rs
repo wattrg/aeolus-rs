@@ -121,8 +121,8 @@ pub fn read_su2(file_path: &Path, id: usize) -> DynamicResult<Block> {
     Ok(Block::new(vertices, interfaces, cells, boundaries, dimensions.unwrap() as u8, id))
 }
 
-pub fn write_su2(file_path: &Path, block: Block) {
-    let file = File::open(file_path).unwrap(); 
+pub fn write_su2(file_path: &Path, block: &Block) {
+    let file = File::create(file_path).unwrap(); 
     let mut buffer = BufWriter::new(file);
 
     // the number of dimensions
@@ -145,7 +145,7 @@ pub fn write_su2(file_path: &Path, block: Block) {
         let element_type = cell.shape().to_su2_element_type();
         write!(buffer, "{}", element_type).unwrap();
         for vertex_id in cell.vertex_ids().iter() {
-            write!(buffer, " {} ", vertex_id).unwrap();
+            write!(buffer, " {}", vertex_id).unwrap();
         }
         writeln!(buffer).unwrap();
     }
@@ -155,7 +155,7 @@ pub fn write_su2(file_path: &Path, block: Block) {
     writeln!(buffer, "NMARK={}", block.boundaries().len()).unwrap();
     for (tag, bndry_interfaces) in block.boundaries().iter() {
         writeln!(buffer, "MARKER_TAG={}", tag).unwrap();
-        writeln!(buffer, "MARKER_ELEMS={}", interfaces.len()).unwrap();
+        writeln!(buffer, "MARKER_ELEMS={}", bndry_interfaces.len()).unwrap();
         for interface in bndry_interfaces.iter() {
             let iface = &interfaces[*interface];
             let shape = iface.shape().to_su2_element_type();
