@@ -1,4 +1,4 @@
-use super::{gas_state::GasState, gas_model::create_gas_model_python_interface};
+use super::gas_state::GasState;
 use crate::gas::gas_model::GasModel;
 use num_complex::ComplexFloat as Number;
 
@@ -60,18 +60,6 @@ impl <Num: Number> GasModel<Num> for IdealGas<Num> {
     }
 }
 
-#[cfg(not(test))]
-create_gas_model_python_interface!(IdealGas, PyIdealGas, "IdealGas");
-
-#[cfg(not(test))]
-#[allow(non_snake_case)]
-#[pymethods]
-impl PyIdealGas {
-    #[new]
-    fn new(R: Real, gamma: Real) -> PyIdealGas {
-        PyIdealGas{inner: IdealGas::new(R, gamma)}
-    }
-}
 
 #[cfg(test)]
 mod test {

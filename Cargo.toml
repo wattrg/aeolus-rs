@@ -9,10 +9,14 @@ crate-type = ["cdylib"]
 
 [dependencies]
 num-complex = "0.4"
-pyo3 = { version = "0.17", features = ["multiple-pymethods", "extension-module"] }
+pyo3 = { version = "0.17", features = ["multiple-pymethods", "extension-module"], optional = true }
 ndarray = "0.15"
 ndarray-linalg = { version="0.16", features = ["openblas-system"]}
 serde = "1.0"
 serde_derive = "1.0"
 config = "0.13"
 clap = { version = "4.0", features = ["derive"] }
+
+[features]
+python = ["dep:pyo3"]
+default = ["python"]
