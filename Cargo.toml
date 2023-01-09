@@ -1,2 +1,3 @@
 [workspace]
-members = ["grid", "gas", "solvers", "common", "python", "aeolus"]
+members = ["grid", "gas", "solvers", "common", "aeolus"]
+exclude = ["python"]

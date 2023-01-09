@@ -1,9 +1,12 @@
 pub mod cli;
 pub mod settings;
+pub mod prep;
 
-use settings::AeolusSettings;
 use cli::{Cli,Commands};
 use clap::Parser;
+
+use settings::AeolusSettings;
+use prep::prep_sim;
 
 fn main() {
     // parse the command line arguments
@@ -16,8 +19,8 @@ fn main() {
 
     // perform the sub command requested by the user
     match args.command {
-        Commands::Prep{prep_file} => {
-            println!("Preparing a simulation with {:?}", prep_file);
+        Commands::Prep{mut prep_file} => {
+            prep_sim(&mut prep_file).unwrap();
         }
         Commands::Run => {
             println!("Running the simulation");
