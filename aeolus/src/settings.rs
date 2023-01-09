@@ -18,21 +18,13 @@ pub struct AeolusSettings {
 impl AeolusSettings {
     pub fn new(args: &Cli) -> Result<AeolusSettings, ConfigError> {
         // where to look for default config
-        let aeolus_home = env::var("AEOLUS_HOME").unwrap_or_else(|_| "src".into());
+        let aeolus_home = env::var("AEOLUS_HOME").unwrap_or_else(|_| "aeolus/src".into());
 
         // begin configuring from files
         let s = Config::builder()
-            .add_source(File::from(Path::new(&format!("{}/config/default.toml", aeolus_home))))
-            .add_source(File::from(Path::new("local.toml")).required(false));
-
-        // configure from command line
-        // there is a method 'set_override_option' which would allow
-        // stringing this onto the above methods, but it doesn't seem
-        // to support enum values.
-        let s = match &args.verbosity {
-            Some(verb) => s.set_override("verbosity", verb.to_string())?,
-            None => s,
-        };
+            .add_source(File::from(Path::new(&format!("{}/default.toml", aeolus_home))))
+            .add_source(File::from(Path::new("local.toml")).required(false))
+            .set_override_option("verbosity", args.verbosity.as_ref().map(|v| v.to_string()))?;
 
         // Attempt to read the configuration
         s.build()?.try_deserialize()
