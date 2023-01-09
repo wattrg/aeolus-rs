@@ -46,6 +46,7 @@ pub struct FileStructure {
     solver: PathBuf,
     discretisation: PathBuf,
     gas_model: PathBuf,
+    units: PathBuf,
     grid: PathBuf,
     fluid:  PathBuf,
 }
@@ -69,6 +70,10 @@ impl FileStructure {
 
     pub fn fluid(&self) -> &Path {
         &self.fluid
+    }
+
+    pub fn units(&self) -> &Path {
+        &self.units
     }
 }
 
