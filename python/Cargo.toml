@@ -1,0 +1,16 @@
+[package]
+name = "aeolus_py"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "aeolus_py"
+crate-type = ["cdylib"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+pyo3 = { version = "0.17", features = ["multiple-pymethods", "extension-module"] }
+gas = {path = '../gas'}
+grid = {path = '../grid'}
+common = {path = "../common"}
