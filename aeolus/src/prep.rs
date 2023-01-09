@@ -4,8 +4,9 @@ use std::fs::read_to_string;
 use pyo3::prelude::*;
 
 use common::DynamicResult;
+use crate::settings::AeolusSettings;
 
-pub fn prep_sim(sim: &mut PathBuf) -> DynamicResult<()> {
+pub fn prep_sim(sim: &mut PathBuf, _settings: &AeolusSettings) -> DynamicResult<()> {
     // if no extension was given, we'll add one
     if let None = sim.extension() {
         sim.set_extension("py");

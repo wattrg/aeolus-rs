@@ -15,12 +15,10 @@ fn main() {
     // set up generic settings
     let settings = AeolusSettings::new(&args).unwrap();
 
-    println!("verbosity = {}", settings.verbosity());
-
     // perform the sub command requested by the user
     match args.command {
         Commands::Prep{mut prep_file} => {
-            prep_sim(&mut prep_file).unwrap();
+            prep_sim(&mut prep_file, &settings).unwrap();
         }
         Commands::Run => {
             println!("Running the simulation");
