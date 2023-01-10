@@ -15,7 +15,7 @@ pub struct Vector3 {
 }
 
 impl Vector3 {
-    /// Create a [Vector3] from [Vec<Number>]
+    /// Create a [`Vector3`] from [`Vec<Number>`]
     pub fn new_from_vec(vector: Vec<Real>) -> Vector3 {
         match vector.len() {
             0 => panic!("No numbers in the vector"),

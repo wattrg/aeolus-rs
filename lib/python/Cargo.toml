@@ -11,6 +11,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 pyo3 = { version = "0.17", features = ["multiple-pymethods", "extension-module"] }
-gas = {path = '../gas'}
-grid = {path = '../grid'}
-common = {path = "../common"}
+gas = {path = '../../src/gas'}
+grid = {path = '../../src/grid'}
+common = {path = "../../src/common"}

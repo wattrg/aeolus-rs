@@ -18,11 +18,11 @@ pub struct AeolusSettings {
 impl AeolusSettings {
     pub fn new(args: &Cli) -> Result<AeolusSettings, ConfigError> {
         // where to look for default config
-        let aeolus_home = env::var("AEOLUS_HOME").unwrap_or_else(|_| "aeolus/src".into());
-
+        let aeolus_home = env::var("AEOLUS_HOME").unwrap_or_else(|_| ".".into());
+        let aeolus_default_path = format!("{}/resources/defaults/aeolus_defaults.toml", aeolus_home);
         // begin configuring from files
         let s = Config::builder()
-            .add_source(File::from(Path::new(&format!("{}/default.toml", aeolus_home))))
+            .add_source(File::from(Path::new(&aeolus_default_path)))
             .add_source(File::from(Path::new("local.toml")).required(false))
             .set_override_option("verbosity", args.verbosity.as_ref().map(|v| v.to_string()))?;
 
