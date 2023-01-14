@@ -61,10 +61,10 @@ impl BlockIO {
     }
 
     pub fn create_block(&mut self, file_path: &Path) -> DynamicResult<Block> {
-        let ext = GridFileType::from_file_name(&file_path)?;
+        let ext = GridFileType::from_file_name(file_path)?;
         match ext {
             GridFileType::Su2 => {
-                let block = read_su2(&file_path, self.number_blocks)?;
+                let block = read_su2(file_path, self.number_blocks)?;
                 self.number_blocks += 1;
                 Ok(block)
             }
@@ -78,6 +78,12 @@ impl BlockIO {
         match file_type {
             GridFileType::Su2 => write_su2(&file_path, block),
         }
+    }
+}
+
+impl Default for BlockIO {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

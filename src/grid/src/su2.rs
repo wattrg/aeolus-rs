@@ -10,7 +10,7 @@ use common::DynamicResult;
 
 pub fn read_su2(file_path: &Path, id: usize) -> DynamicResult<Block> {
     // open the file
-    let file = File::open(&file_path)?;
+    let file = File::open(file_path)?;
     let reader = BufReader::new(file);
 
     // we are going to iterate line by line, until we reach the end of the file.

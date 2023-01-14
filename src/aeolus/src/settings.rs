@@ -1,12 +1,53 @@
 use core::fmt;
 use std::path::{PathBuf, Path};
 use std::env;
+use std::fs;
 
 use serde_derive::{Serialize, Deserialize};
 use clap::ValueEnum;
+use rlua::{UserData, Table, Value};
 
 use crate::cli::Cli;
 use config::{Config, ConfigError, File};
+use common::unit::RefDim;
+
+#[derive(Debug)]
+pub struct InvalidConfig;
+
+/// Simulation configuration
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub struct SimSettings {
+    reference_dimensions: RefDim,
+}
+
+impl UserData for SimSettings {}
+
+impl SimSettings { 
+    pub fn from_lua_table(config: Table) -> Result<SimSettings, InvalidConfig> {
+        // first check to make sure there are no invalid names in the table
+        // this ensures the user doesn't misspell something, and unknowingly
+        // get the default value
+        let allowable_names = ["reference_values"];
+        for pair in config.clone().pairs::<String, Value>() {
+            let (key, _) = pair.unwrap();
+            if !allowable_names.contains(&key.as_str()) {
+                return Err(InvalidConfig);
+            }
+        }
+
+        // read the configuration
+        let reference_dimensions = config.get::<_, RefDim>("reference_values").unwrap();
+
+        Ok(SimSettings{
+            reference_dimensions
+        })
+    }
+
+    pub fn write_config(&self, file_structure: &FileStructure) {
+        let unit_str = toml::to_string(self).unwrap();
+        fs::write(file_structure.units(), unit_str).unwrap();
+    }
+}
 
 /// Configuration for the program
 #[derive(Debug, Serialize, Deserialize)]
@@ -51,7 +92,24 @@ pub struct FileStructure {
     fluid:  PathBuf,
 }
 
+fn create_parent_directory(dir: &Path) {
+    fs::create_dir_all(
+        dir.parent()
+            .unwrap()
+            .as_os_str()
+    ).unwrap();
+}
+
 impl FileStructure {
+    pub fn create_directories(&self) {
+        create_parent_directory(&self.solver);
+        create_parent_directory(&self.discretisation);
+        create_parent_directory(&self.gas_model);
+        create_parent_directory(&self.units);
+        create_parent_directory(&self.grid);
+        create_parent_directory(&self.fluid);
+    }
+
     pub fn solver(&self) -> &Path {
         &self.solver
     }

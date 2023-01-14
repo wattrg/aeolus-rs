@@ -6,6 +6,8 @@ use crate::number::Real;
 
 use ndarray::{Array1, Array2};
 use ndarray_linalg::Solve;
+use serde_derive::{Serialize, Deserialize};
+use rlua::UserData;
 
 /// The base type representing a unit
 /// The unit is stored as an array of powers
@@ -14,7 +16,7 @@ use ndarray_linalg::Solve;
 pub type UnitBase = [i8; 4];
 
 /// Represents a unit for a number
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Default, PartialEq, Eq, Clone)]
 pub struct Unit (UnitBase);
 
 #[derive(Debug, PartialEq, Eq)]
@@ -29,7 +31,7 @@ impl Deref for Unit {
 }
 
 /// A number with a unit
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct UnitNum {
     pub value: Real,
     unit: Unit,
@@ -44,7 +46,17 @@ impl UnitNum {
     pub fn unit(&self) -> &Unit {
         &self.unit
     }
+
+    pub fn get_value(&self) -> Real {
+        self.value
+    }
+
+    pub fn set_value(&mut self, new_value: Real) {
+        self.value = new_value;
+    }
 }
+
+impl UserData for UnitNum {}
 
 impl std::ops::Add for UnitNum {
     type Output = UnitNum;
@@ -161,6 +173,7 @@ fn read_and_remove_power(mut unit: &str) -> (&str, i8) {
     (unit, 1)
 }
 
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct RefDim {
     ref_mass: Real,
     ref_length: Real,
@@ -242,6 +255,8 @@ impl RefDim {
         }
     }
 }
+
+impl UserData for RefDim {}
 
 
 #[cfg(test)]

@@ -1,24 +1,22 @@
-pub mod cli;
-pub mod settings;
-pub mod prep;
 
-use cli::{Cli,Commands};
+use aeolus::cli::{Cli,Commands};
 use clap::Parser;
 
-use settings::AeolusSettings;
-use prep::prep_sim;
+use aeolus::settings::AeolusSettings;
+use aeolus::prep::prep_sim;
+use common::DynamicResult;
 
-fn main() {
+fn main() -> DynamicResult<()> {
     // parse the command line arguments
     let args = Cli::parse(); 
 
     // set up generic settings
-    let settings = AeolusSettings::new(&args).unwrap();
+    let settings = AeolusSettings::new(&args)?;
 
     // perform the sub command requested by the user
     match args.command {
         Commands::Prep{mut prep_file} => {
-            prep_sim(&mut prep_file, &settings).unwrap();
+            prep_sim(&mut prep_file, &settings)?;
         }
         Commands::Run => {
             println!("Running the simulation");
@@ -27,4 +25,5 @@ fn main() {
             println!("Cleaning the simulation files");
         }
     }
+    Ok(())
 }

@@ -1,22 +1,33 @@
 use std::path::PathBuf;
 use std::fs::read_to_string;
 
-use pyo3::prelude::*;
+use rlua::Table;
 
 use common::DynamicResult;
-use crate::settings::AeolusSettings;
+use crate::settings::{AeolusSettings, SimSettings};
+use crate::lua::create_lua_state;
 
-pub fn prep_sim(sim: &mut PathBuf, _settings: &AeolusSettings) -> DynamicResult<()> {
-    // if no extension was given, we'll add one
-    if let None = sim.extension() {
-        sim.set_extension("py");
-    }
-    
-    let py_contents = read_to_string(&sim).unwrap();
-    let py_file_name = sim.file_name().unwrap().to_str().unwrap();
-    Python::with_gil(|py| {
-        let _prep_module = PyModule::from_code(py, &py_contents, py_file_name, "prep").unwrap();
-    });
+pub fn prep_sim(sim: &mut PathBuf, settings: &AeolusSettings) -> DynamicResult<()> {
+    settings.file_structure().create_directories();
+    let mut sim_settings = SimSettings::default();
+    // set up simulation configuration from the lua script
+    let lua = create_lua_state();
+    lua.context(|lua_ctx| -> DynamicResult<()> {
+        let globals = lua_ctx.globals();
+
+        // execute the lua script
+        let lua_file = read_to_string(&sim)?;
+        lua_ctx.load(&lua_file)
+            .exec()?;
+
+        // get the config table
+        let config = globals.get::<_, Table>("config").unwrap();
+        sim_settings = SimSettings::from_lua_table(config).unwrap();
+
+        Ok(())
+    })?;
+
+    sim_settings.write_config(settings.file_structure()); 
 
     Ok(())
 }
