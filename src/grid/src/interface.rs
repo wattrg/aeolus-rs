@@ -1,10 +1,12 @@
+use std::collections::HashMap;
+
 use crate::vertex::Vertex;
 use common::vector3::Vector3;
 use common::number::Real;
 use crate::geom_calc::compute_centre_of_vertices;
 
 /// Allowable interface shapes
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum InterfaceShape {
     Line,
 }
@@ -49,7 +51,7 @@ pub enum Direction {
 }
 
 /// A geometric interface
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Interface {
     vertex_ids: Vec<usize>,
     area: Real,
@@ -206,11 +208,93 @@ impl PartialEq for Interface {
         self.id == other.id
     }
 }
+impl Eq for Interface {}
 
+impl PartialOrd for Interface {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.id.cmp(&other.id))
+    }
+}
+
+impl Ord for Interface {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.id.cmp(&other.id)
+    }
+}
+
+/// Handles a collection of interfaces, making sure
+/// each one is unique
+#[derive(Debug)]
+pub struct InterfaceCollection {
+    interfaces: HashMap<usize, Interface>,
+    id_to_hash: HashMap<usize, usize>,
+}
+
+impl InterfaceCollection {
+    pub fn with_capacity(capacity: usize) -> InterfaceCollection {
+        InterfaceCollection { 
+            interfaces: HashMap::with_capacity(capacity),
+            id_to_hash: HashMap::with_capacity(capacity)
+        }
+    }
+
+    /// Either adds an interface with the specified vertices to the 
+    /// collection, or returns the ID if the interface already exists.
+    pub fn add_or_retrieve(&mut self, vertices: &[&Vertex]) -> usize {
+        let vertex_ids: Vec<usize> = vertices.iter().map(|vertex| vertex.id()).collect();
+        let hash = hash(&vertex_ids);
+        if !self.interfaces.contains_key(&hash) {
+            let interface = Interface::new_from_vertices(vertices, self.interfaces.len());
+            self.id_to_hash.insert(interface.id(), hash);
+            self.interfaces.insert(hash, interface);
+        }
+        return self.interfaces[&hash].id();
+    }
+
+    pub fn find_interface(&self, vertices: &[&Vertex]) -> usize {
+        let vertex_ids: Vec<usize> = vertices.iter().map(|vertex| vertex.id()).collect();
+        let hash = hash(&vertex_ids);
+        self.interfaces[&hash].id() 
+    }
+
+    pub fn interface_with_id(&self, id: usize) -> &Interface {
+        let hash = self.id_to_hash[&id];
+        &self.interfaces[&hash]
+    }
+
+    /// return the interfaces as owned values
+    pub fn interfaces(&self) -> Vec<Interface> {
+        let mut ifaces: Vec<Interface> = self.interfaces.values().cloned().collect();
+        ifaces.sort();
+        ifaces
+    }
+}
+
+fn hash(vertex_ids: &[usize]) -> usize {
+    // the idea is to sort the vertex id's from highest to lowest
+    // then concatenate them together to make one large integer
+    let mut id_vec = vertex_ids.to_vec();
+    id_vec.sort();
+    id_vec.reverse();
+
+    let mut hash = "".to_string();
+    for id in id_vec {
+        hash += &id.to_string();
+    }
+    hash.parse().unwrap()
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn hash_test() {
+        let vertices = &[0, 1, 11];
+        let vertices_hash = hash(vertices);
+
+        assert_eq!(vertices_hash, 1110);
+    }
 
     #[test]
     fn equal() {

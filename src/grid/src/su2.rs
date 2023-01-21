@@ -4,6 +4,7 @@ use std::fs::File;
 use std::collections::HashMap;
 
 use super::block::Block;
+use crate::interface::InterfaceCollection;
 use crate::{vertex::Vertex, interface::Interface, cell::{Cell, CellShape}};
 use common::vector3::Vector3;
 use common::DynamicResult;
@@ -80,7 +81,7 @@ pub fn read_su2(file_path: &Path, id: usize) -> DynamicResult<Block> {
     }
     // now that we've read the file, we can build the interfaces and cells
     let n_cells = n_cells.expect("Could not find connectivity");
-    let mut interfaces: Vec<Interface> = Vec::with_capacity(n_cells);
+    let mut interfaces = InterfaceCollection::with_capacity(n_cells);
     let mut cells: Vec<Cell> = Vec::with_capacity(n_cells);
     for (i, cell_interfaces) in cell_connectivity.iter().enumerate() {
         let mut this_cell_interface_ids: Vec<usize> = vec![];
@@ -89,13 +90,13 @@ pub fn read_su2(file_path: &Path, id: usize) -> DynamicResult<Block> {
                 .iter()
                 .map(|vertex_id| &vertices[*vertex_id])
                 .collect();
-            let interface_id = add_interface(&mut interfaces, &interface_vertices);
+            let interface_id = interfaces.add_or_retrieve(&interface_vertices);
             this_cell_interface_ids.push(interface_id);
         }
 
         let this_cell_interfaces: Vec<&Interface> = this_cell_interface_ids
             .iter()
-            .map(|id| &interfaces[*id] )
+            .map(|id| interfaces.interface_with_id(*id) )
             .collect();
         let this_cell_vertices: Vec<&Vertex> = cell_vertices[i]
             .iter()
@@ -112,13 +113,13 @@ pub fn read_su2(file_path: &Path, id: usize) -> DynamicResult<Block> {
                 .iter()
                 .map(|id| &vertices[*id])
                 .collect();
-            let interface_id = find_interface_with_vertices(&interfaces, &vertices_in_face);
+            let interface_id = interfaces.find_interface(&vertices_in_face);
             interfaces_on_boundary.push(interface_id);
         }
         boundaries.insert(tag, interfaces_on_boundary);
     }
 
-    Ok(Block::new(vertices, interfaces, cells, boundaries, dimensions.unwrap() as u8, id))
+    Ok(Block::new(vertices, interfaces.interfaces(), cells, boundaries, dimensions.unwrap() as u8, id))
 }
 
 pub fn write_su2(file_path: &Path, block: &Block) {
@@ -196,24 +197,24 @@ fn parse_vector_from_line<T>(line: &str) -> Vec<T>
         .collect()
 }
 
-fn add_interface(interfaces: &mut Vec<Interface>, vertices: &[&Vertex]) -> usize {
-    for interface in interfaces.iter() {
-        if interface.equal_to_vertices(vertices) {
-            return interface.id();
-        }
-    }
-    interfaces.push(Interface::new_from_vertices(vertices, interfaces.len()));
-    interfaces.len() - 1
-}
-
-fn find_interface_with_vertices(interfaces: &[Interface], vertices: &[&Vertex]) -> usize{
-    for interface in interfaces.iter() {
-        if interface.equal_to_vertices(vertices) {
-            return interface.id();
-        }
-    }
-    panic!("Could not find interface with vertices");
-}
+// fn add_interface(interfaces: &mut Vec<Interface>, vertices: &[&Vertex]) -> usize {
+//     for interface in interfaces.iter() {
+//         if interface.equal_to_vertices(vertices) {
+//             return interface.id();
+//         }
+//     }
+//     interfaces.push(Interface::new_from_vertices(vertices, interfaces.len()));
+//     interfaces.len() - 1
+// }
+//
+// fn find_interface_with_vertices(interfaces: &[Interface], vertices: &[&Vertex]) -> usize{
+//     for interface in interfaces.iter() {
+//         if interface.equal_to_vertices(vertices) {
+//             return interface.id();
+//         }
+//     }
+//     panic!("Could not find interface with vertices");
+// }
 
 fn read_boundary(line_iter: &mut Lines<BufReader<File>>) -> (String, Vec<Vec<usize>>) {
     let bndry_line = next_line(line_iter);
