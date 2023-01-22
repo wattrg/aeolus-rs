@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use rlua::{UserData, UserDataMethods};
+use serde_derive::{Serialize, Deserialize};
 
 use super::cell::Cell;
 use super::su2::write_su2;
@@ -139,8 +140,9 @@ impl UnknownFileType {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
-enum GridFileType {
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GridFileType {
     Native, Su2,
 }
 

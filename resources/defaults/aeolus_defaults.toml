@@ -1,4 +1,5 @@
 verbosity = "Error"
+native_grid_format = "su2"
 
 [file_structure]
 config = "config/config.toml"

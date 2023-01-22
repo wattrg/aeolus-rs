@@ -359,6 +359,8 @@ version = "0.1.0"
 dependencies = [
  "common",
  "rlua",
+ "serde",
+ "serde_derive",
 ]
 
 [[package]]

@@ -11,7 +11,7 @@ use rlua::{UserData, Table, Value};
 use crate::cli::Cli;
 use config::{Config, ConfigError, File};
 use common::{DynamicResult, unit::RefDim};
-use grid::block::BlockCollection;
+use grid::block::{BlockCollection, GridFileType};
 
 #[derive(Debug)]
 pub struct InvalidConfig;
@@ -79,6 +79,7 @@ impl SimSettings {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AeolusSettings {
     verbosity: Verbosity,
+    native_grid_format: GridFileType,
     file_structure: FileStructure,
 }
 
