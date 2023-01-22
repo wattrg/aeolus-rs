@@ -85,6 +85,7 @@ impl BlockCollection {
     /// write the blocks out in native format
     pub fn write_blocks(&self, grid_dir: &Path) -> DynamicResult<()> {
         let mut file_name = grid_dir.to_path_buf();
+        file_name.push("block");
         for block in self.blocks.iter() {
             file_name.set_file_name(format!("block_{:04}.su2", block.id()));
             write_block(block, &file_name)?;

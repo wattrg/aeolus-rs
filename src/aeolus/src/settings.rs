@@ -1,7 +1,7 @@
 use core::fmt;
 use std::path::{PathBuf, Path};
 use std::env;
-use std::fs;
+use std::fs::{self, create_dir_all};
 use std::str::FromStr;
 
 use serde_derive::{Serialize, Deserialize};
@@ -69,7 +69,7 @@ impl SimSettings {
     fn write_initial_grid(&self, file_structure: &FileStructure) -> DynamicResult<()> {
         let mut dir = file_structure.grid().to_path_buf(); 
         dir.push(&PathBuf::from_str("t0000").unwrap());
-        create_parent_directory(&dir);
+        create_dir_all(&dir)?;
         self.grids.write_blocks(&dir)?;
         Ok(())
     }
