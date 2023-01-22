@@ -2,7 +2,7 @@ use common::vector3::Vector3;
 use common::number::Real;
 
 /// Geometric vertex
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Vertex {
     pos: Vector3,
     id: usize,

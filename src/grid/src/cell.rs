@@ -7,7 +7,7 @@ use crate::interface::Direction;
 use crate::geom_calc::{compute_centre_of_vertices, quad_area, triangle_area};
 
 /// The shape of the cell
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum CellShape {
     Triangle,
     Quadrilateral,
@@ -80,7 +80,7 @@ impl CellShape {
 
 /// Encodes information about the interface
 /// and whether it is inwards or outwards facing
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct CellFace {
     interface: usize,
     direction: Direction,
@@ -97,7 +97,7 @@ impl CellFace {
 }
 
 /// Encodes geometric data about a cell
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Cell{
     vertex_ids: Vec<usize>,
     interfaces: Vec<CellFace>,

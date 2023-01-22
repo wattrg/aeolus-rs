@@ -1,9 +1,8 @@
 verbosity = "Error"
 
 [file_structure]
+config = "config/config.toml"
 solver = "config/solver"
 discretisation = "config/discretisation"
-gas_model = "config/gas_model"
-units = "config/units"
-grid = "grid"
-fluid = "fluid"
+grid = "solution/grid"
+fluid = "solution/fluid"

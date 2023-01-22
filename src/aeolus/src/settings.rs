@@ -2,6 +2,7 @@ use core::fmt;
 use std::path::{PathBuf, Path};
 use std::env;
 use std::fs;
+use std::str::FromStr;
 
 use serde_derive::{Serialize, Deserialize};
 use clap::ValueEnum;
@@ -9,15 +10,19 @@ use rlua::{UserData, Table, Value};
 
 use crate::cli::Cli;
 use config::{Config, ConfigError, File};
-use common::unit::RefDim;
+use common::{DynamicResult, unit::RefDim};
+use grid::block::BlockCollection;
 
 #[derive(Debug)]
 pub struct InvalidConfig;
 
 /// Simulation configuration
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct SimSettings {
     reference_dimensions: RefDim,
+
+    #[serde(skip)]
+    grids: BlockCollection,
 }
 
 impl UserData for SimSettings {}
@@ -27,7 +32,7 @@ impl SimSettings {
         // first check to make sure there are no invalid names in the table
         // this ensures the user doesn't misspell something, and unknowingly
         // get the default value
-        let allowable_names = ["reference_values"];
+        let allowable_names = ["reference_values", "blocks"];
         for pair in config.clone().pairs::<String, Value>() {
             let (key, _) = pair.unwrap();
             if !allowable_names.contains(&key.as_str()) {
@@ -38,14 +43,35 @@ impl SimSettings {
         // read the configuration
         let reference_dimensions = config.get::<_, RefDim>("reference_values").unwrap();
 
+        // the grid
+        let grids = config.get::<_, BlockCollection>("blocks").unwrap();
+
         Ok(SimSettings{
-            reference_dimensions
+            reference_dimensions, grids,
         })
     }
 
-    pub fn write_config(&self, file_structure: &FileStructure) {
-        let unit_str = toml::to_string(self).unwrap();
-        fs::write(file_structure.units(), unit_str).unwrap();
+    pub fn write_config(&self, file_structure: &FileStructure) -> DynamicResult<()> {
+        // write the config file
+        let config_toml = toml::to_string(self).unwrap();
+        fs::write(file_structure.config(), config_toml).unwrap();
+
+        // write the initial conditions
+        self.write_initial_conditions(file_structure)?;
+
+        Ok(())
+    }
+
+    fn write_initial_conditions(&self, file_structure: &FileStructure) -> DynamicResult<()> {
+        self.write_initial_grid(file_structure) 
+    }
+
+    fn write_initial_grid(&self, file_structure: &FileStructure) -> DynamicResult<()> {
+        let mut dir = file_structure.grid().to_path_buf(); 
+        dir.push(&PathBuf::from_str("t0000").unwrap());
+        create_parent_directory(&dir);
+        self.grids.write_blocks(&dir)?;
+        Ok(())
     }
 }
 
@@ -84,10 +110,9 @@ impl AeolusSettings {
 /// for different parts of the configuration
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FileStructure {
+    config: PathBuf,
     solver: PathBuf,
     discretisation: PathBuf,
-    gas_model: PathBuf,
-    units: PathBuf,
     grid: PathBuf,
     fluid:  PathBuf,
 }
@@ -104,8 +129,6 @@ impl FileStructure {
     pub fn create_directories(&self) {
         create_parent_directory(&self.solver);
         create_parent_directory(&self.discretisation);
-        create_parent_directory(&self.gas_model);
-        create_parent_directory(&self.units);
         create_parent_directory(&self.grid);
         create_parent_directory(&self.fluid);
     }
@@ -118,8 +141,8 @@ impl FileStructure {
         &self.discretisation
     }
 
-    pub fn gas_model(&self) -> &Path {
-        &self.gas_model
+    pub fn config(&self) -> &Path {
+        &self.config
     }
 
     pub fn grid(&self) -> &Path {
@@ -130,9 +153,6 @@ impl FileStructure {
         &self.fluid
     }
 
-    pub fn units(&self) -> &Path {
-        &self.units
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize, ValueEnum, Clone)]

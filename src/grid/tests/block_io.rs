@@ -83,8 +83,10 @@ fn create_block_elements() -> (Vec<Vertex>, Vec<Interface>, Vec<Cell>, HashMap<S
 
 #[test]
 fn read_su2_file() {
-    let mut block_io = BlockIO::new();
-    let block = block_io.create_block(&PathBuf::from("./tests/data/square.su2")).unwrap();    
+    let mut block_collection = BlockCollection::new();
+    block_collection.add_block(&PathBuf::from("./tests/data/square.su2")).unwrap();    
+    let block = block_collection.get_block(0);
+
 
     let (vertices, interfaces, cells, boundaries) = create_block_elements();
 
@@ -100,11 +102,11 @@ fn write_su2_file() {
     let dir = env!("CARGO_TARGET_TMPDIR");
     let (vertices, interfaces, cells, boundaries) = create_block_elements();
     let ref_block = Block::new(vertices, interfaces, cells, boundaries, 2, 0);
-    let mut block_io = BlockIO::new();
-    let mut path = PathBuf::from(dir).join("su2_test");
-    block_io.write_block(&ref_block, GridFileType::Su2, path.clone());
-    path.set_extension("su2");
-    let read_block = block_io.create_block(&path).unwrap();
+    let mut block_collection = BlockCollection::new();
+    let path = PathBuf::from(dir).join("su2_test.su2");
+    write_block(&ref_block, &path.clone()).unwrap();
+    block_collection.add_block(&path).unwrap();
+    let read_block = block_collection.get_block(0);
 
     assert_eq!(ref_block.vertices(), read_block.vertices());
 }

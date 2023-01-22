@@ -18,7 +18,7 @@ fn main() -> DynamicResult<()> {
         Commands::Prep{mut prep_file} => {
             prep_sim(&mut prep_file, &settings)?;
         }
-        Commands::Run => {
+        Commands::Run{start_time_index: _} => {
             println!("Running the simulation");
         }
         Commands::Clean => {

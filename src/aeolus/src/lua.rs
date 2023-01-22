@@ -1,6 +1,7 @@
 use rlua::{Lua, Variadic};
 use common::unit::{UnitNum, RefDim};
 use common::number::Real;
+use grid::block::BlockCollection;
 
 pub fn create_lua_state() -> Lua {
     let lua = Lua::new();
@@ -20,6 +21,12 @@ pub fn create_lua_state() -> Lua {
             Ok(RefDim::new(ref_dims_vec))
         }).unwrap();
         globals.set("RefDim", ref_dim).unwrap();
+
+        // Block input
+        let block_collection = lua_ctx.create_function(|_,()| {
+            Ok(BlockCollection::new())
+        }).unwrap();
+        globals.set("blocks", block_collection).unwrap();
 
         // the config table
         let config = lua_ctx.create_table().unwrap();

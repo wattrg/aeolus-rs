@@ -45,7 +45,7 @@ impl InterfaceShape {
 
 /// Describes if the interface is point inwards
 /// or outwards for a particular cell
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Direction {
     Inwards, Outwards,
 }

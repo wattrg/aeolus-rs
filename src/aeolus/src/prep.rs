@@ -27,7 +27,7 @@ pub fn prep_sim(sim: &mut PathBuf, settings: &AeolusSettings) -> DynamicResult<(
         Ok(())
     })?;
 
-    sim_settings.write_config(settings.file_structure()); 
+    sim_settings.write_config(settings.file_structure())?; 
 
     Ok(())
 }

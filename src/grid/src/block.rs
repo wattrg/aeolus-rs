@@ -2,6 +2,9 @@ use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::FromStr;
+
+use rlua::{UserData, UserDataMethods};
 
 use super::cell::Cell;
 use super::su2::write_su2;
@@ -11,7 +14,7 @@ use common::DynamicResult;
 use super::su2::read_su2;
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Block {
     vertices: Vec<Vertex>,
     interfaces: Vec<Interface>,
@@ -20,6 +23,9 @@ pub struct Block {
     dimensions: u8,
     id: usize,
 }
+
+impl UserData for Block {}
+impl UserData for &Block {}
 
 impl Block {
     pub fn new(vertices: Vec<Vertex>, interfaces: Vec<Interface>, cells: Vec<Cell>,
@@ -51,42 +57,59 @@ impl Block {
     }
 }
 
-pub struct BlockIO {
-    number_blocks: usize,
+/// A collection of blocks
+#[derive(Default, Debug, Clone)]
+pub struct BlockCollection {
+    blocks: Vec<Block>,
 }
 
-impl BlockIO {
-    pub fn new() -> BlockIO {
-        BlockIO { number_blocks: 0 }
+impl BlockCollection {
+    pub fn new() -> BlockCollection {
+        BlockCollection { blocks: Vec::new() }
     }
 
-    pub fn create_block(&mut self, file_path: &Path) -> DynamicResult<Block> {
+    pub fn add_block(&mut self, file_path: &Path) -> DynamicResult<()> {
         let ext = GridFileType::from_file_name(file_path)?;
-        match ext {
-            GridFileType::Su2 => {
-                let block = read_su2(file_path, self.number_blocks)?;
-                self.number_blocks += 1;
-                Ok(block)
-            }
-        }
+        let number_blocks = self.blocks.len();
+        let block = match ext {
+            GridFileType::Native | GridFileType::Su2 => read_su2(file_path, number_blocks)?,
+        };
+        self.blocks.push(block);
+        Ok(())
     }
 
-    pub fn write_block(&self, block: &Block, file_type: GridFileType, mut file_path: PathBuf) {
-        let ext = file_type.extension();
-        file_path.set_extension(ext);
+    pub fn get_block(&self, id: usize) -> &Block {
+        &self.blocks[id]
+    }
 
-        match file_type {
-            GridFileType::Su2 => write_su2(&file_path, block),
+    /// write the blocks out in native format
+    pub fn write_blocks(&self, grid_dir: &Path) -> DynamicResult<()> {
+        let mut file_name = grid_dir.to_path_buf();
+        for block in self.blocks.iter() {
+            file_name.set_file_name(format!("block_{:04}.su2", block.id()));
+            write_block(block, &file_name)?;
         }
+        Ok(())
     }
 }
 
-impl Default for BlockIO {
-    fn default() -> Self {
-        Self::new()
+impl UserData for BlockCollection {
+    fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
+        methods.add_method_mut("add_block", |_, block_collection, file_name: String| {
+            let path = PathBuf::from_str(&file_name).unwrap();
+            let block = block_collection.add_block(&path).unwrap(); 
+            Ok(block)
+        });
     }
 }
 
+pub fn write_block(block: &Block, file_name: &Path) -> DynamicResult<()> {
+    let file_type = GridFileType::from_file_name(file_name)?; 
+    match file_type {
+        GridFileType::Native | GridFileType::Su2 => write_su2(&file_name, block),
+    }
+    Ok(())
+}
 
 /// For handling errors associated with file types we don't know how to read
 #[derive(Debug, PartialEq, Eq)]
@@ -116,7 +139,7 @@ impl UnknownFileType {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum GridFileType {
-    Su2,
+    Native, Su2,
 }
 
 impl GridFileType {
@@ -132,7 +155,7 @@ impl GridFileType {
 
     pub fn extension(&self) -> &str {
         match &self {
-            GridFileType::Su2 => "su2",
+            GridFileType::Native | GridFileType::Su2 => "su2",
         }
     }
 }
