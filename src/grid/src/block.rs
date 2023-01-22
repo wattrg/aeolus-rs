@@ -85,9 +85,10 @@ impl BlockCollection {
     /// write the blocks out in native format
     pub fn write_blocks(&self, grid_dir: &Path) -> DynamicResult<()> {
         let mut file_name = grid_dir.to_path_buf();
+        let ext = GridFileType::Native.extension();
         file_name.push("block");
         for block in self.blocks.iter() {
-            file_name.set_file_name(format!("block_{:04}.su2", block.id()));
+            file_name.set_file_name(format!("block_{:04}.{}", block.id(), ext));
             write_block(block, &file_name)?;
         }
         Ok(())
@@ -139,7 +140,7 @@ impl UnknownFileType {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum GridFileType {
+enum GridFileType {
     Native, Su2,
 }
 
@@ -149,6 +150,7 @@ impl GridFileType {
         let ext = file_path.extension().and_then(OsStr::to_str);
         match ext {
             Some("su2") => Ok(GridFileType::Su2),
+            Some("grid") => Ok(GridFileType::Native),
             Some(unknown_ext) => Err(UnknownFileType::new(file_path.to_owned(), Some(unknown_ext.to_string()))),
             None => Err(UnknownFileType::new(file_path.to_owned(), None)),
         }
@@ -156,7 +158,8 @@ impl GridFileType {
 
     pub fn extension(&self) -> &str {
         match &self {
-            GridFileType::Native | GridFileType::Su2 => "su2",
+            GridFileType::Native => "grid",
+            GridFileType::Su2 => "su2",
         }
     }
 }
