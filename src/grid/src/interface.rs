@@ -248,7 +248,7 @@ impl InterfaceCollection {
             self.id_to_hash.insert(interface.id(), hash);
             self.interfaces.insert(hash, interface);
         }
-        return self.interfaces[&hash].id();
+        self.interfaces[&hash].id()
     }
 
     pub fn find_interface(&self, vertices: &[&Vertex]) -> usize {

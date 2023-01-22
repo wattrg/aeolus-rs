@@ -97,8 +97,8 @@ impl UserData for BlockCollection {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method_mut("add_block", |_, block_collection, file_name: String| {
             let path = PathBuf::from_str(&file_name).unwrap();
-            let block = block_collection.add_block(&path).unwrap(); 
-            Ok(block)
+            block_collection.add_block(&path).unwrap(); 
+            Ok(())
         });
     }
 }
@@ -106,7 +106,7 @@ impl UserData for BlockCollection {
 pub fn write_block(block: &Block, file_name: &Path) -> DynamicResult<()> {
     let file_type = GridFileType::from_file_name(file_name)?; 
     match file_type {
-        GridFileType::Native | GridFileType::Su2 => write_su2(&file_name, block),
+        GridFileType::Native | GridFileType::Su2 => write_su2(file_name, block),
     }
     Ok(())
 }
