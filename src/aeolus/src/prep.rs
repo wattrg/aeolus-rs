@@ -10,13 +10,13 @@ use crate::lua::create_lua_state;
 pub fn prep_sim(sim: &mut PathBuf, settings: &AeolusSettings) -> DynamicResult<()> {
     settings.file_structure().create_directories();
     let mut sim_settings = SimSettings::default();
+    let lua_file = read_to_string(&sim)?;
     // set up simulation configuration from the lua script
     let lua = create_lua_state();
     lua.context(|lua_ctx| -> DynamicResult<()> {
         let globals = lua_ctx.globals();
 
         // execute the lua script
-        let lua_file = read_to_string(&sim)?;
         lua_ctx.load(&lua_file)
             .exec()?;
 

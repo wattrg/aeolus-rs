@@ -1,5 +1,6 @@
 
 use aeolus::cli::{Cli,Commands};
+use aeolus::logging::{UserLogger, Logger};
 use clap::Parser;
 
 use aeolus::settings::AeolusSettings;
@@ -12,8 +13,9 @@ fn main() -> DynamicResult<()> {
 
     // set up generic settings
     let settings = AeolusSettings::new(&args)?;
+    let log = UserLogger::with_verbosity(settings.verbosity());
 
-    // perform the sub command requested by the user
+    // perform the sub-command requested by the user
     match args.command {
         Commands::Prep{mut prep_file} => {
             prep_sim(&mut prep_file, &settings)?;
@@ -21,9 +23,8 @@ fn main() -> DynamicResult<()> {
         Commands::Run{start_time_index: _} => {
             println!("Running the simulation");
         }
-        Commands::Clean => {
-            println!("Cleaning the simulation files");
-        }
+        Commands::Post => {}
+        Commands::Clean => { settings.file_structure().clean(&log)?; }
     }
     Ok(())
 }

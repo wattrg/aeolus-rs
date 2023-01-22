@@ -24,10 +24,13 @@ pub enum Commands {
     },
 
     /// Run a simulation
-    Run{
+    Run {
         start_time_index: Option<usize>
     },
 
-    /// Clean simulation files
+    /// Post process a simulation
+    Post,
+
+    /// Clean the simulation files
     Clean,
 }

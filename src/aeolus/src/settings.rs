@@ -9,6 +9,7 @@ use clap::ValueEnum;
 use rlua::{UserData, Table, Value};
 
 use crate::cli::Cli;
+use crate::logging::{UserLogger, Logger};
 use config::{Config, ConfigError, File};
 use common::{DynamicResult, unit::RefDim};
 use grid::block::{BlockCollection, GridFileType};
@@ -126,12 +127,40 @@ fn create_parent_directory(dir: &Path) {
     ).unwrap();
 }
 
+fn remove_base_folder(dir: &Path, log: &UserLogger) -> Result<(), std::io::Error> {
+    let base = dir.iter().next().unwrap();
+    let base_dir = Path::new(base);
+    if base_dir.is_dir() {
+        // the directory exists, so let's remove it. We'll pass errors
+        // up the stack
+        match fs::remove_dir_all(base) {
+            Ok(()) => {
+                log.debug(&format!("removed {}", base_dir.display()));
+                Ok(())
+            },
+            Err(err) => Err(err),
+        }
+    }
+    else {
+        // the directory doesn't exist, so job done!
+        Ok(())
+    }
+}
+
 impl FileStructure {
     pub fn create_directories(&self) {
         create_parent_directory(&self.solver);
         create_parent_directory(&self.discretisation);
         create_parent_directory(&self.grid);
         create_parent_directory(&self.fluid);
+    }
+
+    pub fn clean(&self, log: &UserLogger) -> Result<(), std::io::Error> {
+        remove_base_folder(&self.solver, log)?;
+        remove_base_folder(&self.discretisation, log)?;
+        remove_base_folder(&self.grid, log)?;
+        remove_base_folder(&self.fluid, log)?;
+        Ok(())
     }
 
     pub fn solver(&self) -> &Path {
@@ -153,7 +182,6 @@ impl FileStructure {
     pub fn fluid(&self) -> &Path {
         &self.fluid
     }
-
 }
 
 #[derive(Debug, Serialize, Deserialize, ValueEnum, Clone)]
