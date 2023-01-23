@@ -1,10 +1,11 @@
 use common::number::Real;
 use common::vector3::Vector3;
 
-use crate::interface::Interface;
-use crate::vertex::Vertex;
+use crate::interface::GridInterface;
+use crate::vertex::GridVertex;
 use crate::interface::Direction;
 use crate::geom_calc::{compute_centre_of_vertices, quad_area, triangle_area};
+use crate::{Vertex, Interface, Cell};
 
 /// The shape of the cell
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -70,7 +71,7 @@ impl CellShape {
     }
 
     /// Calculate the volume of the shape given a set of vertices
-    pub fn volume(&self, vertices: &[&Vertex]) -> Real {
+    pub fn volume(&self, vertices: &[&GridVertex]) -> Real {
         match &self {
             CellShape::Triangle => triangle_area(vertices),
             CellShape::Quadrilateral => quad_area(vertices),
@@ -98,7 +99,7 @@ impl CellFace {
 
 /// Encodes geometric data about a cell
 #[derive(Debug, PartialEq, Clone)]
-pub struct Cell{
+pub struct GridCell{
     vertex_ids: Vec<usize>,
     interfaces: Vec<CellFace>,
     shape: CellShape,
@@ -107,7 +108,7 @@ pub struct Cell{
     id: usize,
 }
 
-impl Cell {
+impl GridCell {
     /// Create a cell from the surrounding interfaces vertices
     ///
     /// # Parameters
@@ -117,7 +118,7 @@ impl Cell {
     /// * `vertices`: The vertices making up the cell
     ///
     /// * `id`: The id of the cell
-    pub fn new(interfaces: &[&Interface], vertices: &[&Vertex], id: usize) -> Cell {
+    pub fn new(interfaces: &[&GridInterface], vertices: &[&GridVertex], id: usize) -> GridCell {
 
         let shape = CellShape::from_number_of_vertices(vertices.len() as u8);
         let mut cell_faces = Vec::with_capacity(interfaces.len());
@@ -138,7 +139,7 @@ impl Cell {
 
         let volume = shape.volume(vertices);
     
-        Cell {
+        GridCell {
             vertex_ids,
             interfaces: cell_faces,
             shape,
@@ -153,25 +154,26 @@ impl Cell {
         &self.interfaces
     }
 
-    /// Access the shape of the cell
-    pub fn shape(&self) -> &CellShape {
-        &self.shape
-    }
-
     /// Access the volume of the cell
     pub fn volume(&self) -> Real {
         self.volume
     }
     
-    pub fn vertex_ids(&self) -> &Vec<usize> {
-        &self.vertex_ids
-    }
-    
     pub fn centre(&self) -> &Vector3 {
         &self.centre
     }
+}
+
+impl Cell for GridCell {
+    fn shape(&self) -> &CellShape {
+        &self.shape
+    }
     
-    pub fn id(&self) -> usize {
+    fn vertex_ids(&self) -> &Vec<usize> {
+        &self.vertex_ids
+    }
+    
+    fn id(&self) -> usize {
         self.id
     }
 }
@@ -181,40 +183,40 @@ impl Cell {
 mod tests {
     use super::*;
 
-    fn setup_quad() -> (Vec<Vertex>, Vec<Interface>, Cell) {
+    fn setup_quad() -> (Vec<GridVertex>, Vec<GridInterface>, GridCell) {
         let vertices = vec![
-            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
-            Vertex::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 1),
-            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 2),
-            Vertex::new(Vector3{x: 0.0, y: 1.0, z: 0.0}, 3),
+            GridVertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            GridVertex::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 1),
+            GridVertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 2),
+            GridVertex::new(Vector3{x: 0.0, y: 1.0, z: 0.0}, 3),
         ];
 
         let interfaces = vec![
-            Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0),
-            Interface::new_from_vertices(&[&vertices[2], &vertices[1]], 1),
-            Interface::new_from_vertices(&[&vertices[2], &vertices[3]], 2),
-            Interface::new_from_vertices(&[&vertices[3], &vertices[0]], 3),
+            GridInterface::new_from_vertices(&[&vertices[0], &vertices[1]], 0),
+            GridInterface::new_from_vertices(&[&vertices[2], &vertices[1]], 1),
+            GridInterface::new_from_vertices(&[&vertices[2], &vertices[3]], 2),
+            GridInterface::new_from_vertices(&[&vertices[3], &vertices[0]], 3),
         ];
-        let cell = Cell::new(&[&interfaces[0], &interfaces[1], &interfaces[2], &interfaces[3]], 
+        let cell = GridCell::new(&[&interfaces[0], &interfaces[1], &interfaces[2], &interfaces[3]], 
                              &[&vertices[0], &vertices[1], &vertices[2], &vertices[3]], 
                              0); 
 
         (vertices, interfaces, cell)
     }
 
-    fn setup_tri() -> (Vec<Vertex>, Vec<Interface>, Cell) {
+    fn setup_tri() -> (Vec<GridVertex>, Vec<GridInterface>, GridCell) {
         let vertices = vec![
-            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
-            Vertex::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 1),
-            Vertex::new(Vector3{x: 0.5, y: 1.0, z: 0.0}, 2),
+            GridVertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            GridVertex::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 1),
+            GridVertex::new(Vector3{x: 0.5, y: 1.0, z: 0.0}, 2),
         ];
 
         let interfaces = vec![
-            Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0),
-            Interface::new_from_vertices(&[&vertices[2], &vertices[1]], 1),
-            Interface::new_from_vertices(&[&vertices[2], &vertices[0]], 2),
+            GridInterface::new_from_vertices(&[&vertices[0], &vertices[1]], 0),
+            GridInterface::new_from_vertices(&[&vertices[2], &vertices[1]], 1),
+            GridInterface::new_from_vertices(&[&vertices[2], &vertices[0]], 2),
         ];
-        let cell = Cell::new(&[&interfaces[0], &interfaces[1], &interfaces[2]], 
+        let cell = GridCell::new(&[&interfaces[0], &interfaces[1], &interfaces[2]], 
                              &[&vertices[0], &vertices[1], &vertices[2]], 
                              0); 
 

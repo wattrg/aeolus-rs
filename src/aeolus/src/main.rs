@@ -1,6 +1,6 @@
 
 use aeolus::cli::{Cli,Commands};
-use aeolus::logging::{UserLogger, Logger};
+use aeolus::logging::UserLogger;
 use clap::Parser;
 
 use aeolus::settings::AeolusSettings;

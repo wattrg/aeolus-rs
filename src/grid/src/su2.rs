@@ -3,13 +3,14 @@ use std::io::{Lines, BufReader, BufRead, BufWriter, Write};
 use std::fs::File;
 use std::collections::HashMap;
 
-use super::block::Block;
+use super::block::GridBlock;
 use crate::interface::InterfaceCollection;
-use crate::{vertex::Vertex, interface::Interface, cell::{Cell, CellShape}};
+use crate::{vertex::GridVertex, interface::GridInterface, cell::{GridCell, CellShape}};
+use crate::{Vertex, Interface, Cell, Block};
 use common::vector3::Vector3;
 use common::DynamicResult;
 
-pub fn read_su2(file_path: &Path, id: usize) -> DynamicResult<Block> {
+pub fn read_su2(file_path: &Path, id: usize) -> DynamicResult<GridBlock> {
     // open the file
     let file = File::open(file_path)?;
     let reader = BufReader::new(file);
@@ -20,7 +21,7 @@ pub fn read_su2(file_path: &Path, id: usize) -> DynamicResult<Block> {
     // (this is consistent with the su2 specification)
     let mut dimensions: Option<usize> = None;
     let mut n_cells: Option<usize> = None;
-    let mut vertices: Vec<Vertex> = vec![];
+    let mut vertices: Vec<GridVertex> = vec![];
     let mut cell_connectivity: Vec<Vec<Vec<usize>>> = vec![]; 
     let mut cell_vertices: Vec<Vec<usize>> = vec![];
     let mut boundary_faces: HashMap<String, Vec<Vec<usize>>> = HashMap::new();
@@ -47,7 +48,7 @@ pub fn read_su2(file_path: &Path, id: usize) -> DynamicResult<Block> {
                 let point_line = next_line(&mut line_iter);
                 let coords = parse_vector_from_line_with_dim(&point_line, dim);
                 let vertex_pos = Vector3::new_from_vec(coords);
-                vertices.push(Vertex::new(vertex_pos, point_i));                                        
+                vertices.push(GridVertex::new(vertex_pos, point_i));                                        
             }
         }
 
@@ -82,11 +83,11 @@ pub fn read_su2(file_path: &Path, id: usize) -> DynamicResult<Block> {
     // now that we've read the file, we can build the interfaces and cells
     let n_cells = n_cells.expect("Could not find connectivity");
     let mut interfaces = InterfaceCollection::with_capacity(n_cells);
-    let mut cells: Vec<Cell> = Vec::with_capacity(n_cells);
+    let mut cells: Vec<GridCell> = Vec::with_capacity(n_cells);
     for (i, cell_interfaces) in cell_connectivity.iter().enumerate() {
         let mut this_cell_interface_ids: Vec<usize> = vec![];
         for interface in cell_interfaces.iter() {
-            let interface_vertices: Vec<&Vertex> = interface
+            let interface_vertices: Vec<&GridVertex> = interface
                 .iter()
                 .map(|vertex_id| &vertices[*vertex_id])
                 .collect();
@@ -94,22 +95,22 @@ pub fn read_su2(file_path: &Path, id: usize) -> DynamicResult<Block> {
             this_cell_interface_ids.push(interface_id);
         }
 
-        let this_cell_interfaces: Vec<&Interface> = this_cell_interface_ids
+        let this_cell_interfaces: Vec<&GridInterface> = this_cell_interface_ids
             .iter()
             .map(|id| interfaces.interface_with_id(*id) )
             .collect();
-        let this_cell_vertices: Vec<&Vertex> = cell_vertices[i]
+        let this_cell_vertices: Vec<&GridVertex> = cell_vertices[i]
             .iter()
             .map(|id| &vertices[*id])
             .collect();
-        cells.push(Cell::new(&this_cell_interfaces, &this_cell_vertices, i));
+        cells.push(GridCell::new(&this_cell_interfaces, &this_cell_vertices, i));
     }
 
     // now we can find the interfaces on the boundaries
     for (tag, faces_on_boundary) in boundary_faces {
         let mut interfaces_on_boundary = Vec::new();
         for vertex_ids_in_face in faces_on_boundary {
-            let vertices_in_face: Vec<&Vertex> = vertex_ids_in_face[1..]
+            let vertices_in_face: Vec<&GridVertex> = vertex_ids_in_face[1..]
                 .iter()
                 .map(|id| &vertices[*id])
                 .collect();
@@ -119,10 +120,12 @@ pub fn read_su2(file_path: &Path, id: usize) -> DynamicResult<Block> {
         boundaries.insert(tag, interfaces_on_boundary);
     }
 
-    Ok(Block::new(vertices, interfaces.interfaces(), cells, boundaries, dimensions.unwrap() as u8, id))
+    Ok(GridBlock::new(vertices, interfaces.interfaces(), cells, boundaries, dimensions.unwrap() as u8, id))
 }
 
-pub fn write_su2(file_path: &Path, block: &Block) {
+pub fn write_su2<V, I, C, B>(file_path: &Path, block: &B)
+    where B: Block<V, I, C>, C: Cell, I: Interface, V: Vertex
+{
     let file = File::create(file_path).unwrap(); 
     let mut buffer = BufWriter::new(file);
 

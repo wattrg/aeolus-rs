@@ -7,53 +7,58 @@ use std::str::FromStr;
 use rlua::{UserData, UserDataMethods};
 use serde_derive::{Serialize, Deserialize};
 
-use super::cell::Cell;
+use crate::Block;
+
+use super::cell::GridCell;
 use super::su2::write_su2;
-use super::vertex::Vertex;
-use super::interface::Interface;
+use super::vertex::GridVertex;
+use super::interface::GridInterface;
 use common::DynamicResult;
 use super::su2::read_su2;
 
 
 #[derive(Debug, Clone)]
-pub struct Block {
-    vertices: Vec<Vertex>,
-    interfaces: Vec<Interface>,
-    cells: Vec<Cell>,
+pub struct GridBlock {
+    vertices: Vec<GridVertex>,
+    interfaces: Vec<GridInterface>,
+    cells: Vec<GridCell>,
     boundaries: HashMap<String, Vec<usize>>,
     dimensions: u8,
     id: usize,
 }
 
-impl UserData for Block {}
-impl UserData for &Block {}
+impl UserData for GridBlock {}
+impl UserData for &GridBlock {}
 
-impl Block {
-    pub fn new(vertices: Vec<Vertex>, interfaces: Vec<Interface>, cells: Vec<Cell>,
-               boundaries: HashMap<String, Vec<usize>>, dimensions: u8, id: usize) -> Block {
-        Block{vertices, interfaces, cells, boundaries, dimensions, id}
+impl GridBlock {
+    pub fn new(vertices: Vec<GridVertex>, interfaces: Vec<GridInterface>, cells: Vec<GridCell>,
+               boundaries: HashMap<String, Vec<usize>>, dimensions: u8, id: usize) -> GridBlock {
+        GridBlock{vertices, interfaces, cells, boundaries, dimensions, id}
     }
-    pub fn vertices(&self) -> &Vec<Vertex> {
+}
+
+impl Block<GridVertex, GridInterface, GridCell> for GridBlock  {
+    fn vertices(&self) -> &Vec<GridVertex> {
         &self.vertices
     }
 
-    pub fn interfaces(&self) -> &Vec<Interface> {
+    fn interfaces(&self) -> &Vec<GridInterface> {
         &self.interfaces
     }
 
-    pub fn cells(&self) -> &Vec<Cell> {
+    fn cells(&self) -> &Vec<GridCell> {
         &self.cells
     }
 
-    pub fn dimensions(&self) -> u8 {
+    fn dimensions(&self) -> u8 {
         self.dimensions
     }
 
-    pub fn boundaries(&self) -> &HashMap<String, Vec<usize>> {
+    fn boundaries(&self) -> &HashMap<String, Vec<usize>> {
         &self.boundaries
     }
 
-    pub fn id(&self) -> usize {
+    fn id(&self) -> usize {
         self.id
     }
 }
@@ -61,7 +66,7 @@ impl Block {
 /// A collection of blocks
 #[derive(Default, Debug, Clone)]
 pub struct BlockCollection {
-    blocks: Vec<Block>,
+    blocks: Vec<GridBlock>,
 }
 
 impl BlockCollection {
@@ -79,7 +84,7 @@ impl BlockCollection {
         Ok(())
     }
 
-    pub fn get_block(&self, id: usize) -> &Block {
+    pub fn get_block(&self, id: usize) -> &GridBlock {
         &self.blocks[id]
     }
 
@@ -106,7 +111,7 @@ impl UserData for BlockCollection {
     }
 }
 
-pub fn write_block(block: &Block, file_name: &Path) -> DynamicResult<()> {
+pub fn write_block(block: &GridBlock, file_name: &Path) -> DynamicResult<()> {
     let file_type = GridFileType::from_file_name(file_name)?; 
     match file_type {
         GridFileType::Native | GridFileType::Su2 => write_su2(file_name, block),

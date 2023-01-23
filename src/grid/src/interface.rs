@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
-use crate::vertex::Vertex;
+use crate::vertex::GridVertex;
 use common::vector3::Vector3;
 use common::number::Real;
 use crate::geom_calc::compute_centre_of_vertices;
+use crate::{Vertex, Interface};
 
 /// Allowable interface shapes
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -22,7 +23,7 @@ impl InterfaceShape {
     }
 
     /// Calculate the area of a shape given a set of vertices
-    pub fn area(&self, vertices: &[&Vertex]) -> Real {
+    pub fn area(&self, vertices: &[&GridVertex]) -> Real {
         match &self {
             InterfaceShape::Line => vertices[0].vector_to(vertices[1])
                                                .length(),
@@ -52,7 +53,7 @@ pub enum Direction {
 
 /// A geometric interface
 #[derive(Debug, Clone)]
-pub struct Interface {
+pub struct GridInterface {
     vertex_ids: Vec<usize>,
     area: Real,
     n: Vector3,
@@ -63,14 +64,14 @@ pub struct Interface {
     id: usize,
 }
 
-impl Interface {
+impl GridInterface {
     /// Create an interface from a vector of vertices
     /// 
     /// # Parameters
     /// * `vertices`: The vertices making up the interface
     ///
     /// * `id`: The id of the interface
-    pub fn new_from_vertices(vertices: &[&Vertex], id: usize) -> Interface {
+    pub fn new_from_vertices(vertices: &[&GridVertex], id: usize) -> GridInterface {
         let t1: Vector3;
         let t2: Vector3;
         let n: Vector3;
@@ -97,7 +98,7 @@ impl Interface {
         // compute geometric centre of the cell
         let centre = compute_centre_of_vertices(vertices);
 
-        Interface{vertex_ids, area, n, t1, t2, shape, centre, id}
+        GridInterface{vertex_ids, area, n, t1, t2, shape, centre, id}
     }
 
     /// Access the area of the interface
@@ -120,25 +121,11 @@ impl Interface {
         self.t2
     }
 
-    /// Access the vertices of the interface
-    pub fn vertex_ids(&self) -> &Vec<usize> {
-        &self.vertex_ids 
-    }
-    
-    /// Access the shape of the interface
-    pub fn shape(&self) -> &InterfaceShape {
-        &self.shape 
-    }
-
     /// The dimensionality of the interface
     pub fn dimensions(&self) -> u8 {
         match &self.shape {
             InterfaceShape::Line => 2,
         }
-    }
-
-    pub fn id(&self) -> usize {
-        self.id
     }
 
     /// Compute if an interface is pointing towards or away from
@@ -162,7 +149,7 @@ impl Interface {
         }
     }
 
-    pub fn equal_to_vertices(&self, other: &[&Vertex]) -> bool {
+    pub fn equal_to_vertices(&self, other: &[&GridVertex]) -> bool {
         for other_vertex in other.iter() {
             let mut has_vertex = false;
             for this_vertex_id in self.vertex_ids.iter() {
@@ -191,32 +178,46 @@ impl Interface {
     }
 }
 
-impl PartialEq<Vec<&Vertex>> for Interface {
-    fn eq(&self, vertices:&Vec<&Vertex>) -> bool {
+impl Interface for GridInterface {
+    fn vertex_ids(&self) -> &Vec<usize> {
+        &self.vertex_ids 
+    }
+    
+    fn shape(&self) -> &InterfaceShape {
+        &self.shape 
+    }
+    
+    fn id(&self) -> usize {
+        self.id
+    }
+}
+
+impl PartialEq<Vec<&GridVertex>> for GridInterface {
+    fn eq(&self, vertices:&Vec<&GridVertex>) -> bool {
         self.equal_to_vertices(vertices)
     }
 }
 
-impl PartialEq<&[&Vertex]> for Interface {
-    fn eq(&self, vertices: &&[&Vertex]) -> bool {
+impl PartialEq<&[&GridVertex]> for GridInterface {
+    fn eq(&self, vertices: &&[&GridVertex]) -> bool {
         self.equal_to_vertices(vertices)
     }
 }
 
-impl PartialEq for Interface {
-    fn eq(&self, other: &Interface) -> bool {
+impl PartialEq for GridInterface {
+    fn eq(&self, other: &GridInterface) -> bool {
         self.id == other.id
     }
 }
-impl Eq for Interface {}
+impl Eq for GridInterface {}
 
-impl PartialOrd for Interface {
+impl PartialOrd for GridInterface {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.id.cmp(&other.id))
     }
 }
 
-impl Ord for Interface {
+impl Ord for GridInterface {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.id.cmp(&other.id)
     }
@@ -226,7 +227,7 @@ impl Ord for Interface {
 /// each one is unique
 #[derive(Debug)]
 pub struct InterfaceCollection {
-    interfaces: HashMap<usize, Interface>,
+    interfaces: HashMap<usize, GridInterface>,
     id_to_hash: HashMap<usize, usize>,
 }
 
@@ -240,31 +241,31 @@ impl InterfaceCollection {
 
     /// Either adds an interface with the specified vertices to the 
     /// collection, or returns the ID if the interface already exists.
-    pub fn add_or_retrieve(&mut self, vertices: &[&Vertex]) -> usize {
+    pub fn add_or_retrieve(&mut self, vertices: &[&GridVertex]) -> usize {
         let vertex_ids: Vec<usize> = vertices.iter().map(|vertex| vertex.id()).collect();
         let hash = hash(&vertex_ids);
         if !self.interfaces.contains_key(&hash) {
-            let interface = Interface::new_from_vertices(vertices, self.interfaces.len());
+            let interface = GridInterface::new_from_vertices(vertices, self.interfaces.len());
             self.id_to_hash.insert(interface.id(), hash);
             self.interfaces.insert(hash, interface);
         }
         self.interfaces[&hash].id()
     }
 
-    pub fn find_interface(&self, vertices: &[&Vertex]) -> usize {
+    pub fn find_interface(&self, vertices: &[&GridVertex]) -> usize {
         let vertex_ids: Vec<usize> = vertices.iter().map(|vertex| vertex.id()).collect();
         let hash = hash(&vertex_ids);
         self.interfaces[&hash].id() 
     }
 
-    pub fn interface_with_id(&self, id: usize) -> &Interface {
+    pub fn interface_with_id(&self, id: usize) -> &GridInterface {
         let hash = self.id_to_hash[&id];
         &self.interfaces[&hash]
     }
 
     /// return the interfaces as owned values
-    pub fn interfaces(&self) -> Vec<Interface> {
-        let mut ifaces: Vec<Interface> = self.interfaces.values().cloned().collect();
+    pub fn interfaces(&self) -> Vec<GridInterface> {
+        let mut ifaces: Vec<GridInterface> = self.interfaces.values().cloned().collect();
         ifaces.sort();
         ifaces
     }
@@ -299,13 +300,13 @@ mod tests {
     #[test]
     fn equal() {
         let vertices = vec![
-            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
-            Vertex::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 1),
-            Vertex::new(Vector3{x: 0.0, y: 1.0, z: 0.0}, 2),
-            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 3),
+            GridVertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            GridVertex::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 1),
+            GridVertex::new(Vector3{x: 0.0, y: 1.0, z: 0.0}, 2),
+            GridVertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 3),
         ];
         let id = 1;
-        let face1 = Interface::new_from_vertices(&[&vertices[1], &vertices[2]], id); 
+        let face1 = GridInterface::new_from_vertices(&[&vertices[1], &vertices[2]], id); 
 
         let interface_vertices = vec![
             &vertices[1],
@@ -318,13 +319,13 @@ mod tests {
     #[test]
     fn not_equal() {
         let vertices = vec![
-            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
-            Vertex::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 1),
-            Vertex::new(Vector3{x: 0.0, y: 1.0, z: 0.0}, 2),
-            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 3),
+            GridVertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            GridVertex::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 1),
+            GridVertex::new(Vector3{x: 0.0, y: 1.0, z: 0.0}, 2),
+            GridVertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 3),
         ];
         let id = 1;
-        let face1 = Interface::new_from_vertices(&[&vertices[1], &vertices[2]], id); 
+        let face1 = GridInterface::new_from_vertices(&[&vertices[1], &vertices[2]], id); 
 
         let interface_vertices = vec![
             &vertices[2],
@@ -337,13 +338,13 @@ mod tests {
     #[test]
     fn partial_eq() {
         let vertices = vec![
-            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
-            Vertex::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 1),
-            Vertex::new(Vector3{x: 0.0, y: 1.0, z: 0.0}, 2),
-            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 3),
+            GridVertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            GridVertex::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 1),
+            GridVertex::new(Vector3{x: 0.0, y: 1.0, z: 0.0}, 2),
+            GridVertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 3),
         ];
         let id = 1;
-        let face1 = Interface::new_from_vertices(&[&vertices[1], &vertices[2]], id); 
+        let face1 = GridInterface::new_from_vertices(&[&vertices[1], &vertices[2]], id); 
 
         let interface_vertices = vec![
             &vertices[1],
@@ -356,13 +357,13 @@ mod tests {
     #[test]
     fn partial_ne() {
         let vertices = vec![
-            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
-            Vertex::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 1),
-            Vertex::new(Vector3{x: 0.0, y: 1.0, z: 0.0}, 2),
-            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 3),
+            GridVertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            GridVertex::new(Vector3{x: 1.0, y: 0.0, z: 0.0}, 1),
+            GridVertex::new(Vector3{x: 0.0, y: 1.0, z: 0.0}, 2),
+            GridVertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 3),
         ];
         let id = 1;
-        let face1 = Interface::new_from_vertices(&[&vertices[1], &vertices[2]], id); 
+        let face1 = GridInterface::new_from_vertices(&[&vertices[1], &vertices[2]], id); 
 
         let interface_vertices = vec![
             &vertices[0],
@@ -375,10 +376,10 @@ mod tests {
     #[test]
     fn area() {
         let vertices = vec![
-            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
-            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
+            GridVertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            GridVertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
         ];
-        let interface = Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
+        let interface = GridInterface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
 
         assert_eq!(interface.area(), Real::sqrt(2.));
     }
@@ -386,10 +387,10 @@ mod tests {
     #[test]
     fn norm() {
         let vertices = vec![
-            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
-            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
+            GridVertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            GridVertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
         ];
-        let interface = Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
+        let interface = GridInterface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
 
         let norm = Vector3{x: 1./Real::sqrt(2.), y: -1./Real::sqrt(2.), z: 0.0};
         assert_eq!(interface.norm(), norm);
@@ -398,10 +399,10 @@ mod tests {
     #[test]
     fn t1() {
         let vertices = vec![
-            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
-            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
+            GridVertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            GridVertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
         ];
-        let interface = Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
+        let interface = GridInterface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
         let t1 = Vector3{x: 1.0/Real::sqrt(2.), y: 1./Real::sqrt(2.), z: 0.0};
 
         assert_eq!(interface.t1(), t1);
@@ -410,10 +411,10 @@ mod tests {
     #[test]
     fn t2() {
         let vertices = vec![
-            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
-            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
+            GridVertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            GridVertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
         ];
-        let interface = Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
+        let interface = GridInterface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
         let t2 = Vector3{x: 0.0, y: 0.0, z: 1.0};
 
         assert_eq!(interface.t2(), t2);
@@ -422,10 +423,10 @@ mod tests {
     #[test]
     fn shape() {
         let vertices = vec![
-            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
-            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
+            GridVertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            GridVertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
         ];
-        let interface = Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
+        let interface = GridInterface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
 
         assert_eq!(interface.shape(), &InterfaceShape::Line);
     }
@@ -433,10 +434,10 @@ mod tests {
     #[test]
     fn dimensions() {
         let vertices = vec![
-            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
-            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
+            GridVertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            GridVertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
         ];
-        let interface = Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
+        let interface = GridInterface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
 
         assert_eq!(interface.dimensions(), 2);
     }
@@ -444,10 +445,10 @@ mod tests {
     #[test]
     fn compute_direction_outwards() {
         let vertices = vec![
-            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
-            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
+            GridVertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            GridVertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
         ];
-        let interface = Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
+        let interface = GridInterface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
         let centre = Vector3{x: 0.4, y: 0.6, z: 0.0};
 
         assert_eq!(interface.compute_direction(&centre), Direction::Outwards);
@@ -456,10 +457,10 @@ mod tests {
     #[test]
     fn compute_direction_inwards() {
         let vertices = vec![
-            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
-            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
+            GridVertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 0),
+            GridVertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
         ];
-        let interface = Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
+        let interface = GridInterface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
         let centre = Vector3{x: 0.6, y: 0.4, z: 0.0};
 
         assert_eq!(interface.compute_direction(&centre), Direction::Inwards);
@@ -468,10 +469,10 @@ mod tests {
     #[test]
     fn vertex_ids() {
         let vertices = vec![
-            Vertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 3),
-            Vertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
+            GridVertex::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, 3),
+            GridVertex::new(Vector3{x: 1.0, y: 1.0, z: 0.0}, 1),
         ];
-        let interface = Interface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
+        let interface = GridInterface::new_from_vertices(&[&vertices[0], &vertices[1]], 0);
 
         assert_eq!(interface.vertex_ids(), &vec![3, 1]);
     }
