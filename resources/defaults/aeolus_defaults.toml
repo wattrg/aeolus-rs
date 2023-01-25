@@ -3,7 +3,8 @@ native_grid_format = "su2"
 
 [file_structure]
 config = "config/config.toml"
-solver = "config/solver"
-discretisation = "config/discretisation"
+solver = "config/solver.toml"
+discretisation = "config/discretisation.toml"
+gas_model = "config/gas_model.toml"
 grid = "solution/grid"
 fluid = "solution/fluid"

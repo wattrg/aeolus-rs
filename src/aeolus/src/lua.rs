@@ -2,6 +2,7 @@ use rlua::{Lua, Variadic};
 use common::unit::{UnitNum, RefDim};
 use common::number::Real;
 use grid::block::BlockCollection;
+use gas::ideal_gas::IdealGas;
 
 pub fn create_lua_state() -> Lua {
     let lua = Lua::new();
@@ -21,6 +22,13 @@ pub fn create_lua_state() -> Lua {
             Ok(RefDim::new(ref_dims_vec))
         }).unwrap();
         globals.set("RefDim", ref_dim).unwrap();
+
+        // ideal gas
+        #[allow(non_snake_case)]
+        let ideal_gas = lua_ctx.create_function(|_,(R, gamma): (Real, Real)|{
+            Ok(IdealGas::new(R, gamma))
+        }).unwrap();
+        globals.set("IdealGas", ideal_gas).unwrap();
 
         // Block input
         let block_collection = lua_ctx.create_function(|_,()| {

@@ -1,13 +1,27 @@
 use crate::gas_state::GasState;
 use crate::gas_model::GasModel;
 use num_complex::ComplexFloat as Number;
+use rlua::{UserData, UserDataMethods};
+use common::number::Real;
+use serde_derive::{Serialize, Deserialize};
 
 
 #[allow(non_snake_case)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct IdealGas<Num: Number> {
     R: Num, // J / kg / K
     Cv: Num, // J / K
     gamma: Num,
+}
+
+impl UserData for IdealGas<Real>{
+    fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
+        methods.add_method("update_from_pT", |_, gas_model, gas_state: &GasState<Real>| {
+            let mut gas_state_update = gas_state.clone();
+            gas_model.update_from_pT(&mut gas_state_update);
+            Ok(gas_state_update)
+        })
+    }
 }
 
 #[allow(non_snake_case)]
@@ -22,7 +36,7 @@ impl<Num: Number> IdealGas<Num> {
 }
 
 #[allow(non_snake_case)]
-impl <Num: Number> GasModel<Num> for IdealGas<Num> {
+impl <Num: Number + 'static + std::fmt::Debug + Default> GasModel<Num> for IdealGas<Num> {
     fn update_from_pT(&self, gs: &mut GasState<Num>) {
         gs.rho = gs.p / (self.R * gs.T);
         gs.u = self.Cv * gs.T;
@@ -57,6 +71,10 @@ impl <Num: Number> GasModel<Num> for IdealGas<Num> {
 
     fn R(&self, _gs: &GasState<Num>) -> Num {
         self.R
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }
 

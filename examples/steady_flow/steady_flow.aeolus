@@ -7,3 +7,6 @@ config.reference_values = RefDim(
 blks = blocks()
 blks:add_block("square.su2")
 config.blocks = blks
+
+config.gas_model_type = "ideal_gas"
+config.gas_model = IdealGas(287, 1.4)

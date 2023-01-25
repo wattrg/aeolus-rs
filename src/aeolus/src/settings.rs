@@ -12,7 +12,11 @@ use crate::cli::Cli;
 use crate::logging::{UserLogger, Logger};
 use config::{Config, ConfigError, File};
 use common::{DynamicResult, unit::RefDim};
+use common::number::Real;
 use grid::block::{BlockCollection, GridFileType};
+use gas::gas_model::{GasModels, GasModel};
+use gas::ideal_gas::IdealGas;
+
 
 #[derive(Debug)]
 pub struct InvalidConfig;
@@ -20,11 +24,18 @@ pub struct InvalidConfig;
 /// Simulation configuration
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct SimSettings {
+    gas_model_type: GasModels,
+
     reference_dimensions: RefDim,
+
+    // these don't get written to the generic config file
+    #[serde(skip)]
+    gas_model: Box<dyn GasModel<Real>>,
 
     #[serde(skip)]
     grids: BlockCollection,
 }
+
 
 impl UserData for SimSettings {}
 
@@ -33,7 +44,7 @@ impl SimSettings {
         // first check to make sure there are no invalid names in the table
         // this ensures the user doesn't misspell something, and unknowingly
         // get the default value
-        let allowable_names = ["reference_values", "blocks"];
+        let allowable_names = ["reference_values", "blocks", "gas_model_type", "gas_model"];
         for pair in config.clone().pairs::<String, Value>() {
             let (key, _) = pair.unwrap();
             if !allowable_names.contains(&key.as_str()) {
@@ -41,14 +52,18 @@ impl SimSettings {
             }
         }
 
-        // read the configuration
+        // pull things out of the config table
         let reference_dimensions = config.get::<_, RefDim>("reference_values").unwrap();
-
-        // the grid
         let grids = config.get::<_, BlockCollection>("blocks").unwrap();
 
+        // read the gas model
+        let gas_model_str = config.get::<_, String>("gas_model_type").unwrap();
+        let gas_model_type = GasModels::from_str(&gas_model_str).unwrap();
+        let gas_model: Box<dyn GasModel<Real>> = match gas_model_type {
+            GasModels::IdealGas => Box::new(config.get::<_, IdealGas<Real>>("gas_model").unwrap()),
+        };
         Ok(SimSettings{
-            reference_dimensions, grids,
+            reference_dimensions, grids, gas_model_type, gas_model,
         })
     }
 
@@ -57,12 +72,20 @@ impl SimSettings {
         let config_toml = toml::to_string(self).unwrap();
         fs::write(file_structure.config(), config_toml).unwrap();
 
-        // write the initial conditions
+        match self.gas_model_type {
+            GasModels::IdealGas => {
+                let ideal_gas: &IdealGas<Real> = self.gas_model.as_any().downcast_ref().unwrap();
+                let ideal_gas_toml = toml::to_string(ideal_gas).unwrap();
+                fs::write(file_structure.gas_model(), ideal_gas_toml).unwrap();
+            }
+        }
+
         self.write_initial_conditions(file_structure)?;
+
 
         Ok(())
     }
-
+    
     fn write_initial_conditions(&self, file_structure: &FileStructure) -> DynamicResult<()> {
         self.write_initial_grid(file_structure) 
     }
@@ -113,6 +136,7 @@ impl AeolusSettings {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FileStructure {
     config: PathBuf,
+    gas_model: PathBuf,
     solver: PathBuf,
     discretisation: PathBuf,
     grid: PathBuf,
@@ -153,6 +177,7 @@ impl FileStructure {
         create_parent_directory(&self.discretisation);
         create_parent_directory(&self.grid);
         create_parent_directory(&self.fluid);
+        create_parent_directory(&self.gas_model);
     }
 
     pub fn clean(&self, log: &UserLogger) -> Result<(), std::io::Error> {
@@ -160,6 +185,7 @@ impl FileStructure {
         remove_base_folder(&self.discretisation, log)?;
         remove_base_folder(&self.grid, log)?;
         remove_base_folder(&self.fluid, log)?;
+        remove_base_folder(&self.gas_model, log)?;
         Ok(())
     }
 
@@ -181,6 +207,10 @@ impl FileStructure {
 
     pub fn fluid(&self) -> &Path {
         &self.fluid
+    }
+
+    pub fn gas_model(&self) -> &Path {
+        &self.gas_model
     }
 }
 

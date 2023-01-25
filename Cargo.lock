@@ -15,6 +15,7 @@ dependencies = [
  "clap",
  "common",
  "config",
+ "gas",
  "grid",
  "rlua",
  "serde",
@@ -327,9 +328,12 @@ dependencies = [
 name = "gas"
 version = "0.1.0"
 dependencies = [
+ "common",
  "num-complex",
+ "rlua",
  "serde",
  "serde_derive",
+ "toml",
 ]
 
 [[package]]

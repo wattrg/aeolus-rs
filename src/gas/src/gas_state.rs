@@ -1,9 +1,11 @@
 use std::fmt::Display;
 
 use num_complex::ComplexFloat as Number;
+use rlua::UserData;
+use common::number::Real;
 
 #[allow(non_snake_case)]
-#[derive(Default, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, Debug)]
 pub struct GasState<Num: Number> {
     /// The pressure (Pa)
     pub p: Num,
@@ -20,6 +22,9 @@ pub struct GasState<Num: Number> {
     /// Sound speed (m/s)
     pub a: Num,
 }
+
+impl UserData for GasState<Real> {}
+impl UserData for &GasState<Real> {}
 
 impl<Num: Number + Default> GasState<Num> {
     pub fn new() -> GasState<Num> {
