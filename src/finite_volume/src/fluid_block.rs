@@ -1,7 +1,9 @@
-
 use std::ops::Index;
 
 use common::number::Real;
+use grid::interface::GridInterface;
+use grid::cell::GridCell;
+use grid::{Cell, Interface};
 
 pub struct ArrayVec3 {
     pub x: Vec<Real>,
@@ -9,8 +11,14 @@ pub struct ArrayVec3 {
     pub z: Vec<Real>,
 }
 
+/// Keep track of the ids of objects forming another object.
+/// For example, the id's of the interfaces surrounding a cell.
+/// We store it dynamically since we don't know how many interfaces
+/// may be surrounding the cell (we don't know the shape of the cell
+/// at compile time, and we allow different shaped cells in the
+/// same grid).
 pub struct Ids {
-    vertex_ids: Vec<usize>,
+    ids: Vec<usize>,
     offsets: Vec<usize>,
 }
 
@@ -18,7 +26,41 @@ impl Index<usize> for Ids {
     type Output = [usize];
 
     fn index(&self, index: usize) -> &Self::Output {
-        &self.vertex_ids[self.offsets[index] .. self.offsets[index+1]]
+        &self.ids[self.offsets[index] .. self.offsets[index+1]]
+    }
+}
+
+impl Ids {
+    pub fn from_interfaces(interfaces: &Vec<GridInterface>) -> Ids {
+        let capacity = interfaces.len();
+        let mut offsets: Vec<usize> = Vec::with_capacity(capacity);
+        let mut ids: Vec<usize> = Vec::new();
+        for interface in interfaces.iter() {
+            offsets.push(ids.len());
+            ids.extend(interface.vertex_ids());
+        };
+        offsets.push(ids.len());
+        Ids {ids, offsets}
+    }
+
+    pub fn from_cells(cells: &Vec<GridCell>) -> (Ids, Ids) {
+        let capacity = cells.len();
+        let mut interface_offsets: Vec<usize> = Vec::with_capacity(capacity);
+        let mut vertex_offsets: Vec<usize> = Vec::with_capacity(capacity);
+        let mut interface_ids: Vec<usize> = Vec::new();
+        let mut vertex_ids: Vec<usize> = Vec::new();
+        for cell in cells.iter() {
+            interface_offsets.push(interface_ids.len());
+            vertex_offsets.push(vertex_ids.len());
+            interface_ids.extend(cell.interface_ids());
+            vertex_ids.extend(cell.vertex_ids());
+        };
+        interface_offsets.push(interface_ids.len());
+        vertex_offsets.push(interface_ids.len());
+        (
+            Ids {ids: vertex_ids, offsets: vertex_offsets}, 
+            Ids {ids: interface_ids, offsets: interface_offsets}
+        )
     }
 }
 
@@ -106,5 +148,32 @@ impl FluidBlock {
 
     pub fn cells(&self) -> &Cells {
         &self.cells
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use super::*;
+    use grid::block::BlockCollection;
+    use grid::Block;
+
+    #[test]
+    fn test_interface_ids() {
+        // read a block
+        let mut block_collection = BlockCollection::new(); 
+        block_collection.add_block(&PathBuf::from("../grid/tests/data/square.su2")).unwrap();
+        let block = block_collection.get_block(0);
+
+        let interface_ids = Ids::from_interfaces(block.interfaces());
+        assert_eq!(interface_ids[0], [0, 1]);
+        assert_eq!(interface_ids[1], [1, 5]);
+        assert_eq!(interface_ids[2], [5, 4]);
+        assert_eq!(interface_ids[3], [4, 0]);
+        assert_eq!(interface_ids[4], [1, 2]);
+        assert_eq!(interface_ids[5], [2, 6]);
+        assert_eq!(interface_ids[12], [8, 4]);
+        assert_eq!(interface_ids[23], [15, 14]);
     }
 }

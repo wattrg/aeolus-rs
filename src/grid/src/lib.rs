@@ -20,20 +20,22 @@ mod su2;
 
 mod geom_calc;
 
-pub trait Cell {
+pub trait Cell: Id {
     fn shape(&self) -> &CellShape;
     fn vertex_ids(&self) -> &Vec<usize>;
-    fn id(&self) -> usize;
+    fn interface_ids(&self) -> Vec<usize>;
 }
 
-pub trait Interface {
+pub trait Interface: Id {
     fn shape(&self) -> &InterfaceShape;
     fn vertex_ids(&self) -> &Vec<usize>;
-    fn id(&self) -> usize;
 }
 
-pub trait Vertex {
+pub trait Vertex: Id {
     fn pos(&self) -> &Vector3;
+}
+
+pub trait Id {
     fn id(&self) -> usize;
 }
 

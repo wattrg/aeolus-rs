@@ -4,7 +4,7 @@ use crate::vertex::GridVertex;
 use common::vector3::Vector3;
 use common::number::Real;
 use crate::geom_calc::compute_centre_of_vertices;
-use crate::{Vertex, Interface};
+use crate::{Interface, Id};
 
 /// Allowable interface shapes
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -186,7 +186,9 @@ impl Interface for GridInterface {
     fn shape(&self) -> &InterfaceShape {
         &self.shape 
     }
-    
+}
+
+impl Id for GridInterface {
     fn id(&self) -> usize {
         self.id
     }

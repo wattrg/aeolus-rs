@@ -5,7 +5,7 @@ use crate::interface::GridInterface;
 use crate::vertex::GridVertex;
 use crate::interface::Direction;
 use crate::geom_calc::{compute_centre_of_vertices, quad_area, triangle_area};
-use crate::{Vertex, Interface, Cell};
+use crate::{Cell, Id};
 
 /// The shape of the cell
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -172,12 +172,20 @@ impl Cell for GridCell {
     fn vertex_ids(&self) -> &Vec<usize> {
         &self.vertex_ids
     }
-    
+
+    fn interface_ids(&self) -> Vec<usize> {
+        self.interfaces
+            .iter()
+            .map(|cell_face| cell_face.interface())
+            .collect()
+    }
+}
+
+impl Id for GridCell{
     fn id(&self) -> usize {
         self.id
     }
 }
-
 
 #[cfg(test)]
 mod tests {

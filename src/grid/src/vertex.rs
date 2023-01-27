@@ -1,6 +1,6 @@
 use common::vector3::Vector3;
 use common::number::Real;
-use crate::Vertex;
+use crate::{Vertex, Id};
 
 /// Geometric vertex
 #[derive(Debug, Clone)]
@@ -30,7 +30,9 @@ impl Vertex for GridVertex {
     fn pos(&self) -> &Vector3 {
         &self.pos
     }
+}
 
+impl Id for GridVertex {
     fn id(&self) -> usize {
         self.id
     }
