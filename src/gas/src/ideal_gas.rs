@@ -17,7 +17,7 @@ pub struct IdealGas<Num: Number> {
 impl UserData for IdealGas<Real>{
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method("update_from_pT", |_, gas_model, gas_state: &GasState<Real>| {
-            let mut gas_state_update = gas_state.clone();
+            let mut gas_state_update = *gas_state;
             gas_model.update_from_pT(&mut gas_state_update);
             Ok(gas_state_update)
         })
