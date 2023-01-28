@@ -1,15 +1,10 @@
 use std::ops::Index;
 
 use common::number::Real;
+use common::vector3::ArrayVec3;
 use grid::interface::GridInterface;
 use grid::cell::GridCell;
 use grid::{Cell, Interface};
-
-pub struct ArrayVec3 {
-    pub x: Vec<Real>,
-    pub y: Vec<Real>,
-    pub z: Vec<Real>,
-}
 
 /// Keep track of the ids of objects forming another object.
 /// For example, the id's of the interfaces surrounding a cell.
@@ -175,5 +170,20 @@ mod tests {
         assert_eq!(interface_ids[5], [2, 6]);
         assert_eq!(interface_ids[12], [8, 4]);
         assert_eq!(interface_ids[23], [15, 14]);
+    }
+
+    #[test]
+    fn test_cell_ids() {
+        // read a block
+        let mut block_collection = BlockCollection::new(); 
+        block_collection.add_block(&PathBuf::from("../grid/tests/data/square.su2")).unwrap();
+        let block = block_collection.get_block(0);
+
+        let (vertex_ids, interface_ids) = Ids::from_cells(block.cells());
+        assert_eq!(vertex_ids[0], [0, 1, 5, 4]);
+        assert_eq!(vertex_ids[5], [6, 7, 11, 10]);
+
+        assert_eq!(interface_ids[0], [0, 1, 2, 3]);
+        assert_eq!(interface_ids[5], [9, 15, 16, 13]);
     }
 }

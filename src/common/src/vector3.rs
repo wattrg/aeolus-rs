@@ -1,3 +1,5 @@
+extern crate alloc;
+
 use crate::number::Real;
 use std::ops;
 
@@ -38,7 +40,7 @@ impl Vector3 {
     }
 
     /// Normalise the vector in place
-    pub fn normalise(&mut self) {
+    pub fn normalise_in_place(&mut self) {
         let length = self.length();
         self.scale_in_place(1. / length);
     }
@@ -123,6 +125,77 @@ impl PartialEq for Vector3 {
     }
 }
 
+/// A (hopefully) computationally performant array of 3D vectors.
+/// This is meant for use in the core flow solvers.
+/// For GPU implementations, this might have to move to another crate
+/// with no_std
+pub struct ArrayVec3 {
+    pub x: Vec<Real>,
+    pub y: Vec<Real>,
+    pub z: Vec<Real>,
+    len: usize,
+}
+
+impl ArrayVec3 {
+    pub fn from_vector3s(vector3s: &[Vector3]) -> ArrayVec3 {
+        // allocate memory
+        let capacity = vector3s.len();
+        let mut x: Vec<Real> = vec![0.0; capacity];
+        let mut y: Vec<Real> = vec![0.0; capacity];
+        let mut z: Vec<Real> = vec![0.0; capacity];
+
+        for i in 0 .. capacity {
+            x[i] = vector3s[i].x;
+            y[i] = vector3s[i].y;
+            z[i] = vector3s[i].z;
+        };
+
+        ArrayVec3 { x, y, z, len: capacity }
+    }
+
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    pub fn scale_in_place(&mut self, factor: Real) {
+        for i in 0 .. self.x.len() {
+            self.x[i] *= factor;
+            self.y[i] *= factor;
+            self.z[i] *= factor;
+        }
+    }
+
+    pub fn normalise_in_place(&mut self) {
+        for i in 0 .. self.x.len() {
+            let length = Real::sqrt(self.x[i]*self.x[i] + self.y[i]*self.y[i] + self.z[i]*self.z[i]);
+            self.x[i] /= length;
+            self.y[i] /= length;
+            self.z[i] /= length;
+        }
+    }
+
+    pub fn transform_to_local_frame(&mut self, n: &Self, t1: &Self, t2: &Self) {
+        for i in 0 .. self.x.len() {
+            let x = self.x[i]*n.x[i]  + self.y[i]*n.y[i]  + self.z[i]*n.z[i];
+            let y = self.x[i]*t1.x[i] + self.y[i]*t1.y[i] + self.z[i]*t1.z[i];
+            let z = self.x[i]*t2.x[i] + self.y[i]*t2.y[i] + self.z[i]*t2.z[i];
+            self.x[i] = x;
+            self.y[i] = y;
+            self.z[i] = z;
+        }
+    }
+
+    pub fn transform_to_global_frame(&mut self, n: &Self, t1: &Self, t2: &Self) {
+        for i in 0 .. self.x.len() {
+            let x = self.x[i]*n.x[i] + self.y[i]*t1.x[i] + self.z[i]*t2.x[i];
+            let y = self.x[i]*n.y[i] + self.y[i]*t1.y[i] + self.z[i]*t2.y[i];
+            let z = self.x[i]*n.z[i] + self.y[i]*t1.z[i] + self.z[i]*t2.z[i];
+            self.x[i] = x;
+            self.y[i] = y;
+            self.z[i] = z;
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -161,7 +234,7 @@ mod tests {
     #[test]
     fn normalise() {
         let mut vec = Vector3{x: 1.0, y: 2.0, z: 3.0};
-        vec.normalise();
+        vec.normalise_in_place();
         let length = Real::sqrt(14.);
         let normalised_vec = Vector3{x: 1./length, y: 2./length, z: 3./length};
         
@@ -239,5 +312,92 @@ mod tests {
         let result = Vector3{x: -1.0, y: -1.0, z: -1.0};
 
         assert_eq!(&vec1 - &vec2, result);
+    }
+
+    fn create_array_vec() -> ArrayVec3 {
+        let vector3s = vec![
+            Vector3{x: 1.0, y: 0.0, z: 0.0},
+            Vector3{x: 1.0, y: 1.0, z: 0.0},
+            Vector3{x: 0.0, y: 1.0, z: 0.0},
+        ];
+        ArrayVec3::from_vector3s(&vector3s)
+    }
+
+    fn create_local_frames() -> (ArrayVec3, ArrayVec3, ArrayVec3) {
+        let ns = vec![
+            Vector3{x: 1.0, y: 0.0, z: 0.0},
+            Vector3{x: 0.0, y: 1.0, z: 0.0},
+            Vector3{x: 1./Real::sqrt(2.0), y: 1./Real::sqrt(2.0), z: 0.0},
+        ];
+
+        let t1s = vec![
+            Vector3{x: 0.0, y: 1.0, z: 0.0},
+            Vector3{x: 1.0, y: 0.0, z: 0.0},
+            Vector3{x: -1./Real::sqrt(2.0), y: 1./Real::sqrt(2.0), z: 0.0},
+        ];
+
+        let t2s = vec![
+            Vector3{x: 0.0, y: 0.0, z: 1.0},
+            Vector3{x: 0.0, y: 0.0, z: 1.0},
+            Vector3{x: 0.0, y: 0.0, z: 1.0},
+        ];
+
+        (ArrayVec3::from_vector3s(&ns), ArrayVec3::from_vector3s(&t1s), ArrayVec3::from_vector3s(&t2s))
+    }
+
+    #[test]
+    fn array_vec_len() {
+        let array_vec = create_array_vec();
+        assert_eq!(array_vec.len(), 3);
+    }
+
+    #[test]
+    fn array_vec_scale() {
+        let mut array_vec = create_array_vec();
+        array_vec.scale_in_place(2.0);
+        assert_eq!(array_vec.x, vec![2.0, 2.0, 0.0]);
+        assert_eq!(array_vec.y, vec![0.0, 2.0, 2.0]);
+        assert_eq!(array_vec.z, vec![0.0, 0.0, 0.0]);
+    }
+
+    #[test]
+    fn array_vec_normalise() {
+        let mut array_vec = create_array_vec();
+        array_vec.normalise_in_place();
+        assert_eq!(array_vec.x, vec![1.0, 1./Real::sqrt(2.0), 0.0]);
+        assert_eq!(array_vec.y, vec![0.0, 1./Real::sqrt(2.0), 1.0]);
+        assert_eq!(array_vec.z, vec![0.0, 0.0, 0.0]);
+    }
+
+    #[test]
+    fn array_vec_transform_to_local_frame() {
+        let mut array_vec = create_array_vec();
+        let (n, t1, t2) = create_local_frames();
+        array_vec.transform_to_local_frame(&n, &t1, &t2);
+        assert_eq!(array_vec.x, vec![1., 1., 1./Real::sqrt(2.)]);
+        assert_eq!(array_vec.y, vec![0., 1., 1./Real::sqrt(2.)]);
+        assert_eq!(array_vec.z, vec![0., 0.0, 0.0]);
+    }
+
+    #[test]
+    fn array_vec_transform_to_global_frame() {
+        let mut array_vec_local = ArrayVec3{
+            x: vec![1., 1., 1./Real::sqrt(2.0)],
+            y: vec![0., 1., 1./Real::sqrt(2.0)],
+            z: vec![0.0, 0.0, 0.0],
+            len: 3,
+        };
+        let array_vec_global = create_array_vec();
+        let (n, t1, t2) = create_local_frames();
+        array_vec_local.transform_to_global_frame(&n, &t1, &t2);
+        assert!((array_vec_local.x[0] - array_vec_global.x[0]).abs() < 1e-14);
+        assert!((array_vec_local.x[1] - array_vec_global.x[1]).abs() < 1e-14);
+        assert!((array_vec_local.x[2] - array_vec_global.x[2]).abs() < 1e-14);
+        assert!((array_vec_local.y[0] - array_vec_global.y[0]).abs() < 1e-14);
+        assert!((array_vec_local.y[1] - array_vec_global.y[1]).abs() < 1e-14);
+        assert!((array_vec_local.y[2] - array_vec_global.y[2]).abs() < 1e-14);
+        assert!((array_vec_local.z[0] - array_vec_global.z[0]).abs() < 1e-14);
+        assert!((array_vec_local.z[1] - array_vec_global.z[1]).abs() < 1e-14);
+        assert!((array_vec_local.z[2] - array_vec_global.z[2]).abs() < 1e-14);
     }
 }
