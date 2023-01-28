@@ -25,7 +25,7 @@ fn create_block_elements() -> (Vec<GridVertex>, Vec<GridInterface>, Vec<GridCell
         GridVertex::new(Vector3{x: 3.0, y: 3.0, z: 0.0}, 15),
     ];
 
-    let interfaces = vec![
+    let mut interfaces = vec![
         GridInterface::new_from_vertices(&[&vertices[0], &vertices[1]], 0), 
         GridInterface::new_from_vertices(&[&vertices[1], &vertices[5]], 1),
         GridInterface::new_from_vertices(&[&vertices[5], &vertices[4]], 2),
@@ -72,6 +72,10 @@ fn create_block_elements() -> (Vec<GridVertex>, Vec<GridInterface>, Vec<GridCell
         GridCell::new(&[&interfaces[16], &interfaces[22], &interfaces[23], &interfaces[20]], 
                   &[&vertices[10], &vertices[11], &vertices[15], &vertices[14]], 8),
     ];
+
+    for cell in cells.iter() {
+        cell.attach_cell_to_interfaces(&mut interfaces);
+    }
 
     let boundaries = HashMap::from([
         ("slip_wall_bottom".to_string(), vec![0, 4, 7]),

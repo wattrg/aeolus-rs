@@ -31,8 +31,11 @@ impl UserData for GridBlock {}
 impl UserData for &GridBlock {}
 
 impl GridBlock {
-    pub fn new(vertices: Vec<GridVertex>, interfaces: Vec<GridInterface>, cells: Vec<GridCell>,
+    pub fn new(vertices: Vec<GridVertex>, mut interfaces: Vec<GridInterface>, cells: Vec<GridCell>,
                boundaries: HashMap<String, Vec<usize>>, dimensions: u8, id: usize) -> GridBlock {
+        for cell in cells.iter() {
+            cell.attach_cell_to_interfaces(&mut interfaces);
+        }
         GridBlock{vertices, interfaces, cells, boundaries, dimensions, id}
     }
 }

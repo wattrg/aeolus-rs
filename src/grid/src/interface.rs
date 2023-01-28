@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::cell::GridCell;
 use crate::vertex::GridVertex;
 use common::vector3::Vector3;
 use common::number::Real;
@@ -61,6 +62,8 @@ pub struct GridInterface {
     t2: Vector3,
     centre: Vector3,
     shape: InterfaceShape,
+    left_cell: Option<usize>,
+    right_cell: Option<usize>,
     id: usize,
 }
 
@@ -95,10 +98,14 @@ impl GridInterface {
             }
         }
 
+        // the cells attached to this interface are none by default
+        let left_cell = None;
+        let right_cell = None;
+
         // compute geometric centre of the cell
         let centre = compute_centre_of_vertices(vertices);
 
-        GridInterface{vertex_ids, area, n, t1, t2, shape, centre, id}
+        GridInterface{vertex_ids, area, n, t1, t2, shape, left_cell, right_cell, centre, id}
     }
 
     /// Access the area of the interface
@@ -125,6 +132,16 @@ impl GridInterface {
     pub fn dimensions(&self) -> u8 {
         match &self.shape {
             InterfaceShape::Line => 2,
+        }
+    }
+
+    /// Attach a cell to the interface. This figures out which
+    /// side the cell should be on based on the cell centre
+    pub fn attach_cell(&mut self, cell: &GridCell) {
+        let direction = self.compute_direction(cell.centre());
+        match direction {
+            Direction::Inwards => self.left_cell = Some(cell.id()),
+            Direction::Outwards => self.right_cell = Some(cell.id()),
         }
     }
 
@@ -208,7 +225,19 @@ impl PartialEq<&[&GridVertex]> for GridInterface {
 
 impl PartialEq for GridInterface {
     fn eq(&self, other: &GridInterface) -> bool {
-        self.id == other.id
+        let id = self.id == other.id;
+        let vertex_ids = self.vertex_ids == other.vertex_ids;
+        let area = (self.area - other.area).abs() < 1e-14;
+        let n = self.n == other.n;
+        let t1 = self.t1 == other.t1;
+        let t2 = self.t2 == other.t2;
+        let centre = self.centre == other.centre;
+        let shape = self.shape == other.shape;
+        let left_cell = self.left_cell == other.left_cell;
+        let right_cell = self.right_cell == other.right_cell;
+        
+
+        id && vertex_ids && area && n && t1 && t2 && centre && shape && left_cell && right_cell
     }
 }
 impl Eq for GridInterface {}
@@ -270,6 +299,12 @@ impl InterfaceCollection {
         let mut ifaces: Vec<GridInterface> = self.interfaces.values().cloned().collect();
         ifaces.sort();
         ifaces
+    }
+
+    /// attach a cell to the interface with given id
+    pub fn attach_cell_to_interface(&mut self, cell: &GridCell, id: usize) {
+        let hash = self.id_to_hash[&id];
+        self.interfaces.get_mut(&hash).unwrap().attach_cell(cell);
     }
 }
 

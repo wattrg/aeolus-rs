@@ -10,6 +10,7 @@ use crate::{Vertex, Interface, Cell, Block};
 use common::vector3::Vector3;
 use common::DynamicResult;
 
+/// Read a GridBlock from and su2 file
 pub fn read_su2(file_path: &Path, id: usize) -> DynamicResult<GridBlock> {
     // open the file
     let file = File::open(file_path)?;
@@ -97,7 +98,7 @@ pub fn read_su2(file_path: &Path, id: usize) -> DynamicResult<GridBlock> {
 
         let this_cell_interfaces: Vec<&GridInterface> = this_cell_interface_ids
             .iter()
-            .map(|id| interfaces.interface_with_id(*id) )
+            .map(|id| interfaces.interface_with_id(*id))
             .collect();
         let this_cell_vertices: Vec<&GridVertex> = cell_vertices[i]
             .iter()
@@ -119,10 +120,10 @@ pub fn read_su2(file_path: &Path, id: usize) -> DynamicResult<GridBlock> {
         }
         boundaries.insert(tag, interfaces_on_boundary);
     }
-
     Ok(GridBlock::new(vertices, interfaces.interfaces(), cells, boundaries, dimensions.unwrap() as u8, id))
 }
 
+/// Write a [`Block`] trait object to a su2 file
 pub fn write_su2<V, I, C, B>(file_path: &Path, block: &B)
     where B: Block<V, I, C>, C: Cell, I: Interface, V: Vertex
 {
@@ -199,25 +200,6 @@ fn parse_vector_from_line<T>(line: &str) -> Vec<T>
         .map(|token| token.parse().unwrap())
         .collect()
 }
-
-// fn add_interface(interfaces: &mut Vec<Interface>, vertices: &[&Vertex]) -> usize {
-//     for interface in interfaces.iter() {
-//         if interface.equal_to_vertices(vertices) {
-//             return interface.id();
-//         }
-//     }
-//     interfaces.push(Interface::new_from_vertices(vertices, interfaces.len()));
-//     interfaces.len() - 1
-// }
-//
-// fn find_interface_with_vertices(interfaces: &[Interface], vertices: &[&Vertex]) -> usize{
-//     for interface in interfaces.iter() {
-//         if interface.equal_to_vertices(vertices) {
-//             return interface.id();
-//         }
-//     }
-//     panic!("Could not find interface with vertices");
-// }
 
 fn read_boundary(line_iter: &mut Lines<BufReader<File>>) -> (String, Vec<Vec<usize>>) {
     let bndry_line = next_line(line_iter);

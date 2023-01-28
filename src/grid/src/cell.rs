@@ -1,7 +1,7 @@
 use common::number::Real;
 use common::vector3::Vector3;
 
-use crate::interface::GridInterface;
+use crate::interface::{GridInterface, InterfaceCollection};
 use crate::vertex::GridVertex;
 use crate::interface::Direction;
 use crate::geom_calc::{compute_centre_of_vertices, quad_area, triangle_area};
@@ -161,6 +161,12 @@ impl GridCell {
     
     pub fn centre(&self) -> &Vector3 {
         &self.centre
+    }
+
+    pub fn attach_cell_to_interfaces(&self, interfaces: &mut Vec<GridInterface>) {
+        for cell_face in self.interfaces.iter() {
+            interfaces[cell_face.interface()].attach_cell(self);
+        }
     }
 }
 
