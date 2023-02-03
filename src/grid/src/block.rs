@@ -91,6 +91,10 @@ impl BlockCollection {
         &self.blocks[id]
     }
 
+    pub fn blocks(&self) -> &Vec<GridBlock> {
+        &self.blocks
+    }
+
     /// write the blocks out in native format
     pub fn write_blocks(&self, grid_dir: &Path) -> DynamicResult<()> {
         let mut file_name = grid_dir.to_path_buf();

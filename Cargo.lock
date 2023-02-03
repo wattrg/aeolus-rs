@@ -310,6 +310,7 @@ name = "finite_volume"
 version = "0.1.0"
 dependencies = [
  "common",
+ "gas",
  "grid",
 ]
 
