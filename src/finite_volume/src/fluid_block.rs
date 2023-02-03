@@ -1,100 +1,23 @@
 use std::path::Path;
 
-use crate::util::Ids;
-use crate::flow::{FlowStates, ConservedQuantities};
 use common::DynamicResult;
 use common::number::Real;
 use common::vector3::{ArrayVec3, Vector3};
 use grid::block::{BlockCollection, GridBlock};
-use grid::interface::Direction;
 use grid::{Block, Vertex};
 use gas::flow_state::FlowState;
 
-
-pub struct Interfaces {
-    vertex_ids: Ids,
-
-    // the area of the interface
-    area: Vec<Real>,
-
-    // the unit vectors describing the orientation
-    norm: ArrayVec3,
-    t1: ArrayVec3,
-    t2: ArrayVec3,
-
-    left_flow_states: FlowStates,
-    right_flow_states: FlowStates,
-
-    // the centre of the interface
-    centre: Vec<Real>,
-}
-
-impl Interfaces {
-    pub fn vertices(&self) -> &Ids {
-        &self.vertex_ids
-    }
-
-    pub fn area(&self) -> &[Real] {
-        &self.area
-    }
-
-    pub fn norm(&self) -> &ArrayVec3 {
-        &self.norm
-    }
-
-    pub fn t1(&self) -> &ArrayVec3 {
-        &self.t1
-    }
-
-    pub fn t2(&self) -> &ArrayVec3 {
-        &self.t2
-    }
-
-    pub fn centre(&self) -> &[Real] {
-        &self.centre
-    }
-}
+use crate::boundary_conditions::BoundaryCondition;
+use crate::interface::Interfaces;
+use crate::cells::Cells;
 
 
-pub struct Cells {
-    // geometric information
-    vertices: Ids,
-    interfaces: Ids,
-    interface_directions: Vec<Direction>,
-    volume: Vec<Real>,
-    centre: Vec<Real>,
-
-    flow_states: FlowStates,
-    conserved_quantities: ConservedQuantities,
-    residuals: ConservedQuantities,
-}
-
-impl Cells {
-    pub fn vertices(&self) -> &Ids {
-        &self.vertices
-    }
-
-    pub fn interfaces(&self) -> &Ids {
-        &self.interfaces
-    }
-
-    pub fn interface_directions(&self) -> &[Direction] {
-        &self.interface_directions
-    }
-
-    pub fn volume(&self) -> &[Real] {
-        &self.volume
-    }
-
-    pub fn centre(&self) -> &[Real] {
-        &self.centre
-    }
-}
 
 pub struct FluidBlock {
     vertices: ArrayVec3,
     interfaces: Interfaces,
     cells: Cells,
+    boundaries: Vec<BoundaryCondition>,
     id: usize,
 }
 
@@ -113,6 +36,12 @@ impl FluidBlock {
 
     pub fn id(&self) -> usize {
         self.id
+    }
+
+    pub fn apply_pre_reconstruction_boundary_conditions(&mut self) {
+        for boundary in self.boundaries.iter() {
+            boundary.apply_pre_reconstruction_actions(&mut self.interfaces);
+        }
     }
 }
 
@@ -135,24 +64,37 @@ impl FluidBlockCollection {
         todo!()
     }
 
-    pub fn write_fluid_blocks(&mut self, dir: &Path) -> DynamicResult<()> {
-        todo!() 
+    pub fn write_fluids_blocks(&mut self, path: &Path) -> DynamicResult<()> {
+        self.time_index += 1;
+        let mut block_path = path.to_path_buf();
+        block_path.push(format!("{:0>4}", self.time_index));
+        for block in self.fluid_blocks.iter() {
+            block_path.set_file_name(format!("blk{:0>4}.fluid", block.id()));
+            write_fluid_block(&block, &block_path)?;
+        } 
+        Ok(())
     }
+
 
     fn get_vertices(block: &GridBlock) -> ArrayVec3 {
         // TODO: think about re-jigging the Vertex trait to avoid the clone
         let vertices: Vec<Vector3> = block.vertices().iter().map(|vertex| vertex.pos().clone()).collect(); 
         ArrayVec3::from_vector3s(&vertices)
     }
+
+}
+
+fn write_fluid_block(fluid_block: &FluidBlock, path: &Path) -> DynamicResult<()> {
+    todo!()
 }
 
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
 
-    use super::*;
     use grid::block::BlockCollection;
     use grid::Block;
+    use crate::util::Ids;
 
     #[test]
     fn test_interface_ids() {
