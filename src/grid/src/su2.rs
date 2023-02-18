@@ -125,7 +125,7 @@ pub fn read_su2(file_path: &Path, id: usize) -> DynamicResult<GridBlock> {
 
 /// Write a [`Block`] trait object to a su2 file
 pub fn write_su2<V, I, C, B>(file_path: &Path, block: &B)
-    where B: Block<V, I, C>, C: Cell, I: Interface, V: Vertex
+    where B: Block<V, I, C>, C: Cell, I: Interface + Clone, V: Vertex
 {
     let file = File::create(file_path).unwrap(); 
     let mut buffer = BufWriter::new(file);

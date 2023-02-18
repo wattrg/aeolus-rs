@@ -19,6 +19,8 @@ pub struct Interfaces {
 
     // the centre of the interface
     centre: Vec<Real>,
+
+    length: usize,
 }
 
 impl Interfaces {
@@ -44,5 +46,9 @@ impl Interfaces {
 
     pub fn centre(&self) -> &[Real] {
         &self.centre
+    }
+
+    pub fn len(&self) -> usize {
+        self.length
     }
 }

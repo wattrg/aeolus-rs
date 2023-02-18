@@ -2,12 +2,12 @@ use std::path::Path;
 
 use common::DynamicResult;
 use common::number::Real;
-use common::vector3::{ArrayVec3, Vector3};
-use grid::block::{BlockCollection, GridBlock};
-use grid::{Block, Vertex};
+use common::vector3::ArrayVec3;
+use grid::block::BlockCollection;
 use gas::flow_state::FlowState;
 
 use crate::boundary_conditions::BoundaryCondition;
+use crate::fluid_block_io::FluidBlockIO;
 use crate::interface::Interfaces;
 use crate::cells::Cells;
 
@@ -19,6 +19,7 @@ pub struct FluidBlock {
     cells: Cells,
     boundaries: Vec<BoundaryCondition>,
     id: usize,
+    dimensions: u8,
 }
 
 impl FluidBlock {
@@ -43,20 +44,23 @@ impl FluidBlock {
             boundary.apply_pre_reconstruction_actions(&mut self.interfaces);
         }
     }
+
+    pub fn dimensions(&self) -> u8 {
+        self.dimensions
+    }
 }
 
-pub struct FluidBlockCollection {
+
+pub struct FluidBlockCollection<'a> {
     fluid_blocks: Vec<FluidBlock>,
+    fluid_block_io: Vec<FluidBlockIO<'a>>,
     time_index: usize,
 }
 
 pub type InitialCondition = fn(Real, Real, Real) -> FlowState<Real>;
 
-impl FluidBlockCollection {
+impl<'a> FluidBlockCollection<'a> {
     pub fn with_constant_initial_condition(block_collection: &BlockCollection, initial_condition: FlowState<Real>) -> FluidBlockCollection {
-        for block in block_collection.blocks().iter() {
-            let vertices = Self::get_vertices(block);
-        }
         todo!()
     }
 
@@ -68,24 +72,12 @@ impl FluidBlockCollection {
         self.time_index += 1;
         let mut block_path = path.to_path_buf();
         block_path.push(format!("{:0>4}", self.time_index));
-        for block in self.fluid_blocks.iter() {
-            block_path.set_file_name(format!("blk{:0>4}.fluid", block.id()));
-            write_fluid_block(&block, &block_path)?;
+        for block_io in self.fluid_block_io.iter_mut() {
+            block_path.set_file_name(format!("blk{:0>4}.fluid", block_io.id()));
+            block_io.write_fluid_block(&block_path)?;
         } 
         Ok(())
     }
-
-
-    fn get_vertices(block: &GridBlock) -> ArrayVec3 {
-        // TODO: think about re-jigging the Vertex trait to avoid the clone
-        let vertices: Vec<Vector3> = block.vertices().iter().map(|vertex| vertex.pos().clone()).collect(); 
-        ArrayVec3::from_vector3s(&vertices)
-    }
-
-}
-
-fn write_fluid_block(fluid_block: &FluidBlock, path: &Path) -> DynamicResult<()> {
-    todo!()
 }
 
 #[cfg(test)]

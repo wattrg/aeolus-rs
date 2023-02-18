@@ -15,6 +15,8 @@ pub struct Cells {
     flow_states: FlowStates,
     conserved_quantities: ConservedQuantities,
     residuals: ConservedQuantities,
+
+    length: usize,
 }
 
 impl Cells {
@@ -36,5 +38,13 @@ impl Cells {
 
     pub fn centre(&self) -> &[Real] {
         &self.centre
+    }
+
+    pub fn flow_states(&self) -> &FlowStates {
+        &self.flow_states
+    }
+
+    pub fn len(&self) -> usize {
+        self.length
     }
 }
