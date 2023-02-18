@@ -8,7 +8,7 @@ use crate::geom_calc::{compute_centre_of_vertices, quad_area, triangle_area};
 use crate::{Cell, Id};
 
 /// The shape of the cell
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum CellShape {
     Triangle,
     Quadrilateral,

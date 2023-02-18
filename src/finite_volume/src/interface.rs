@@ -1,5 +1,6 @@
 use common::number::Real;
 use common::vector3::ArrayVec3;
+use grid::interface::InterfaceShape;
 use crate::util::Ids;
 use crate::flow::FlowStates;
 
@@ -8,6 +9,9 @@ pub struct Interfaces {
 
     // the area of the interface
     area: Vec<Real>,
+
+    // the shape of the interfaces
+    shape: Vec<InterfaceShape>,
 
     // the unit vectors describing the orientation
     norm: ArrayVec3,
@@ -50,5 +54,9 @@ impl Interfaces {
 
     pub fn len(&self) -> usize {
         self.length
+    }
+
+    pub fn shape(&self) -> &[InterfaceShape] {
+        &self.shape
     }
 }

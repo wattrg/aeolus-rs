@@ -2,7 +2,7 @@ use std::{path::Path, collections::HashMap};
 
 use crate::{fluid_block::FluidBlock, flow::FlowStates};
 use common::{DynamicResult, vector3::Vector3, number::Real};
-use grid::{cell::CellShape, interface::InterfaceShape, Vertex, Id, Interface, Cell, Block};
+use grid::{cell::CellShape, interface::InterfaceShape, Vertex, Id, Interface, Cell, Block, block::{GridFileType, write_block}};
 
 /// Light weight copy of vertex geometric data
 pub struct VertexIO {
@@ -28,6 +28,7 @@ impl VertexIO {
 }
 
 /// Light weight copy of interface geometric data
+#[derive(Clone)]
 pub struct InterfaceIO {
     id: usize,
     shape: InterfaceShape,
@@ -104,13 +105,17 @@ impl<'a> FluidBlockIO<'a> {
         let flow_states = FlowStates::with_capacity(fluid_block.cells().len());
         let dimensions = fluid_block.dimensions();
         let id = fluid_block.id();
-        FluidBlockIO{
+        let mut fluid_block_io = FluidBlockIO{
             fluid_block: &fluid_block, flow_states, vertices, interfaces, cells, dimensions, id
-        }
+        };
+        fluid_block_io.copy_interfaces();
+        fluid_block_io.copy_cells();
+        fluid_block_io
     }
 
     pub fn write_fluid_block(&mut self, path: &Path) -> DynamicResult<()> {
-        self.read_data_from_fluid_block();
+        self.copy_flow_state();
+        self.copy_vertex_positions();
         self.write_to_file(path)?;
         Ok(())
     }
@@ -119,12 +124,56 @@ impl<'a> FluidBlockIO<'a> {
         self.id
     }
 
-    fn read_data_from_fluid_block(&mut self) {
+    fn copy_flow_state(&mut self) {
         self.flow_states = self.fluid_block.cells().flow_states().clone();
     }
 
+    fn copy_vertex_positions(&mut self) {
+        self.vertices.clear();
+        let vertices = self.fluid_block.vertices();
+        for i_vtx in 0 .. vertices.len() {
+            self.vertices.push(VertexIO{
+                pos: Vector3{
+                    x: vertices.x[i_vtx],
+                    y: vertices.y[i_vtx],
+                    z: vertices.z[i_vtx]
+                },
+                id: i_vtx
+            }) 
+        }
+    }
+
+    fn copy_interfaces(&mut self) {
+        self.interfaces.clear();
+        let interfaces = self.fluid_block.interfaces();
+        for i_face in 0 .. interfaces.len() {
+            self.interfaces.push(InterfaceIO{
+                id: i_face,
+                shape: interfaces.shape()[i_face],
+                vertex_ids: interfaces.vertices()[i_face].to_vec(),
+            });       
+        }
+    }
+
+    fn copy_cells(&mut self) {
+        self.cells.clear();
+        let cells = self.fluid_block.cells();
+        for i_cell in 0 .. cells.len() {
+            self.cells.push(CellIO{
+                id: i_cell,
+                vertex_ids: cells.vertices()[i_cell].to_vec(),
+                interface_ids: cells.interfaces()[i_cell].to_vec(),
+                shape: cells.shape()[i_cell],
+            });
+        }
+    }
+
     fn write_to_file(&self, path: &Path) -> DynamicResult<()> {
-        todo!()
+        let mut file_path = path.to_path_buf();
+        let ext = GridFileType::Native.extension();
+        file_path.set_file_name(format!("blk{:0>4}.{}", self.id, ext));
+        write_block(self, &file_path)?; 
+        Ok(())
     }
 }
 

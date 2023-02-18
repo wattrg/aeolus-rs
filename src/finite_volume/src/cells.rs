@@ -1,4 +1,5 @@
 use common::number::Real;
+use grid::cell::CellShape;
 use grid::interface::Direction;
 
 use crate::util::Ids;
@@ -11,6 +12,7 @@ pub struct Cells {
     interface_directions: Vec<Direction>,
     volume: Vec<Real>,
     centre: Vec<Real>,
+    shape: Vec<CellShape>,
 
     flow_states: FlowStates,
     conserved_quantities: ConservedQuantities,
@@ -46,5 +48,9 @@ impl Cells {
 
     pub fn len(&self) -> usize {
         self.length
+    }
+
+    pub fn shape(&self) -> &[CellShape] {
+        &self.shape
     }
 }

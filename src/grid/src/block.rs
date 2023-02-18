@@ -8,6 +8,9 @@ use rlua::{UserData, UserDataMethods};
 use serde_derive::{Serialize, Deserialize};
 
 use crate::Block;
+use crate::Cell;
+use crate::Interface;
+use crate::Vertex;
 
 use super::cell::GridCell;
 use super::su2::write_su2;
@@ -118,7 +121,9 @@ impl UserData for BlockCollection {
     }
 }
 
-pub fn write_block(block: &GridBlock, file_name: &Path) -> DynamicResult<()> {
+pub fn write_block<V, I, C, B>(block: &B, file_name: &Path) -> DynamicResult<()> 
+    where B: Block<V, I, C>, V: Vertex, I: Interface + Clone, C: Cell
+{
     let file_type = GridFileType::from_file_name(file_name)?; 
     match file_type {
         GridFileType::Native | GridFileType::Su2 => write_su2(file_name, block),

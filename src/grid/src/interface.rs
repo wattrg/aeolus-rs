@@ -8,7 +8,7 @@ use crate::geom_calc::compute_centre_of_vertices;
 use crate::{Interface, Id};
 
 /// Allowable interface shapes
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum InterfaceShape {
     Line,
 }
